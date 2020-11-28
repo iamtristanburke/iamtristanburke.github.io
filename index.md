@@ -4,4 +4,4 @@
 
 ![Alyssa](/download.jpg)
 
-<img src="/download.jpg" alt="test" width=“300"/>
+<img src="download.jpg" width=“300px"/>
