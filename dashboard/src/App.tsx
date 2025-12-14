@@ -2,25 +2,28 @@ import { useState } from 'react'
 import MainLayout from './layouts/MainLayout'
 import Header from './components/Header'
 import Navigation from './components/Navigation'
-import Home from './pages/Home'
-import About from './pages/About'
-import Projects from './pages/Projects'
+import Actions from './pages/Actions'
+import Analysis from './pages/Analysis'
+import DataSources from './pages/DataSources'
+import Model from './pages/Model'
 
-type Page = 'home' | 'about' | 'projects'
+type Page = 'actions' | 'analysis' | 'data-sources' | 'model'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('home')
+  const [currentPage, setCurrentPage] = useState<Page>('actions')
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'home':
-        return <Home />
-      case 'about':
-        return <About />
-      case 'projects':
-        return <Projects />
+      case 'actions':
+        return <Actions />
+      case 'analysis':
+        return <Analysis />
+      case 'data-sources':
+        return <DataSources />
+      case 'model':
+        return <Model />
       default:
-        return <Home />
+        return <Actions />
     }
   }
 

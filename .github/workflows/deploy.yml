@@ -29,6 +29,13 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'dashboard/package-lock.json'
       
+      - name: Generate package-lock.json if missing
+        working-directory: ./dashboard
+        run: |
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only
+          fi
+      
       - name: Install dependencies
         working-directory: ./dashboard
         run: npm ci

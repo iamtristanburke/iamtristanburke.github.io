@@ -1,4 +1,6 @@
-type Page = 'home' | 'about' | 'projects'
+import { FaBolt, FaChartBar, FaDatabase, FaRobot } from 'react-icons/fa'
+
+type Page = 'actions' | 'analysis' | 'data-sources' | 'model'
 
 interface NavigationProps {
   currentPage: Page
@@ -6,45 +8,34 @@ interface NavigationProps {
 }
 
 export default function Navigation({ currentPage, onPageChange }: NavigationProps) {
+  const tabs = [
+    { id: 'actions' as Page, label: 'Actions', icon: FaBolt },
+    { id: 'analysis' as Page, label: 'Analysis', icon: FaChartBar },
+    { id: 'data-sources' as Page, label: 'Data Sources', icon: FaDatabase },
+    { id: 'model' as Page, label: 'Model', icon: FaRobot },
+  ]
+
   return (
     <nav className="mb-8">
-      <ul className="flex gap-4">
-        <li>
-          <button
-            onClick={() => onPageChange('home')}
-            className={`transition-colors ${
-              currentPage === 'home'
-                ? 'text-white font-semibold'
-                : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            Home
-          </button>
-        </li>
-        <li>
-          <button
-            onClick={() => onPageChange('about')}
-            className={`transition-colors ${
-              currentPage === 'about'
-                ? 'text-white font-semibold'
-                : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            About
-          </button>
-        </li>
-        <li>
-          <button
-            onClick={() => onPageChange('projects')}
-            className={`transition-colors ${
-              currentPage === 'projects'
-                ? 'text-white font-semibold'
-                : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            Projects
-          </button>
-        </li>
+      <ul className="flex gap-1 border-b border-gray-900">
+        {tabs.map((tab) => {
+          const Icon = tab.icon
+          return (
+            <li key={tab.id}>
+              <button
+                onClick={() => onPageChange(tab.id)}
+                className={`flex items-center gap-2 px-6 py-3 transition-colors border-b-2 ${
+                  currentPage === tab.id
+                    ? 'text-red-500 border-red-500 font-semibold'
+                    : 'text-gray-400 hover:text-gray-200 border-transparent'
+                }`}
+              >
+                <Icon />
+                {tab.label}
+              </button>
+            </li>
+          )
+        })}
       </ul>
     </nav>
   )
