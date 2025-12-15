@@ -13,6 +13,26 @@ dashboard/dist
 dashboard/dist-ssr
 *.local
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+pipeline/venv/
+pipeline/env/
+pipeline/.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data (keep the directory but ignore raw data files if needed)
+# data/*.csv
+# data/*.xlsx
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
