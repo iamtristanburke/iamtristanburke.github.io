@@ -207,7 +207,7 @@ export default function ResultsPage({ results, config, onRestart }: ResultsPageP
           font: {
             family: 'Montserrat',
             size: 13,
-            weight: '600'
+            weight: 600
           },
           padding: 20,
           usePointStyle: true
