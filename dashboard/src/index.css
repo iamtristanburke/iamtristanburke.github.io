@@ -28,3 +28,129 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  /* Header adjustments */
+  .colt-header {
+    padding: 1rem !important;
+  }
+  
+  .colt-header-content {
+    flex-direction: column;
+    gap: 1rem !important;
+    text-align: center;
+  }
+  
+  .colt-brand-name {
+    font-size: 1.8rem !important;
+  }
+  
+  /* Container padding */
+  .page-container {
+    padding: 1.5rem 1rem !important;
+  }
+  
+  /* Form grids stack */
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+  
+  /* Section padding */
+  .section-container {
+    padding: 1.5rem !important;
+  }
+  
+  /* Tables - horizontal scroll */
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Buttons full width on mobile */
+  .button-group {
+    flex-direction: column !important;
+  }
+  
+  .button-group button {
+    width: 100%;
+  }
+  
+  /* Chart container */
+  .chart-container {
+    padding: 1.5rem !important;
+  }
+  
+  .chart-container canvas {
+    max-height: 300px;
+  }
+  
+  /* Comparison cards stack */
+  .comparison-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Strategy grid */
+  .strategy-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Progress bar */
+  .progress-bar {
+    padding: 1rem !important;
+    gap: 0.5rem !important;
+  }
+  
+  .progress-step {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 1rem !important;
+  }
+  
+  /* Period selector */
+  .period-selector {
+    flex-wrap: wrap;
+    gap: 0.5rem !important;
+  }
+  
+  .period-button {
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+  
+  /* Landing page */
+  .landing-container {
+    padding: 1rem !important;
+    margin: 2rem auto !important;
+  }
+  
+  .landing-hero {
+    padding: 3rem 1.5rem !important;
+  }
+  
+  .landing-title {
+    font-size: 2rem !important;
+  }
+  
+  .landing-text {
+    font-size: 1rem !important;
+  }
+  
+  /* Filter bar */
+  .filter-bar {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch !important;
+  }
+  
+  /* Table font sizes */
+  .table-wrapper table {
+    font-size: 0.85rem;
+  }
+  
+  .table-wrapper th,
+  .table-wrapper td {
+    padding: 0.5rem !important;
+  }
+}

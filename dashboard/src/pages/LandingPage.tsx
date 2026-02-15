@@ -4,10 +4,10 @@ interface LandingPageProps {
 
 export default function LandingPage({ onStart }: LandingPageProps) {
   return (
-    <div style={styles.landingContainer}>
-      <div style={styles.landingHero}>
-        <h2 style={styles.landingTitle}>Test Your Investment Strategy</h2>
-        <p style={styles.landingText}>
+    <div style={styles.landingContainer} className="landing-container">
+      <div style={styles.landingHero} className="landing-hero">
+        <h2 style={styles.landingTitle} className="landing-title">Test Your Investment Strategy</h2>
+        <p style={styles.landingText} className="landing-text">
           Backtest portfolio strategies using historical market data. Compare different allocations and stock selections 
           to understand how they would have performed in real market conditions.
         </p>

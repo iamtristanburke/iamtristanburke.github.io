@@ -197,8 +197,7 @@ export default function ResultsPage({ results, config, onRestart }: ResultsPageP
   
   const chartOptions: ChartOptions<'line'> = {
     responsive: true,
-    maintainAspectRatio: true,
-    aspectRatio: 2,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         display: true,
@@ -229,14 +228,14 @@ export default function ResultsPage({ results, config, onRestart }: ResultsPageP
   };
   
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="page-container">
       <ProgressBar current={5} />
       <Section title="Historical Performance Analysis">
         <p style={styles.sectionDesc}>
           How would your portfolio have performed historically compared to the S&P 500 and a traditional 60/40 portfolio?
         </p>
         
-        <div style={styles.periodSelector}>
+        <div style={styles.periodSelector} className="period-selector">
           {results.periods.map((period, idx) => (
             <button
               key={idx}
@@ -244,6 +243,7 @@ export default function ResultsPage({ results, config, onRestart }: ResultsPageP
                 ...styles.periodButton,
                 ...(selectedPeriod === idx ? styles.periodButtonActive : {})
               }}
+              className="period-button"
               onClick={() => setSelectedPeriod(idx)}
             >
               {period.period}
@@ -253,7 +253,7 @@ export default function ResultsPage({ results, config, onRestart }: ResultsPageP
         
         <h3 style={styles.periodTitle}>{currentPeriod.period} Historical Backtest</h3>
         
-        <div style={styles.comparisonGrid}>
+        <div style={styles.comparisonGrid} className="comparison-grid">
           <ComparisonCard 
             title="Your Portfolio"
             totalReturn={currentPeriod.metrics.portfolio.totalReturn}
@@ -275,12 +275,12 @@ export default function ResultsPage({ results, config, onRestart }: ResultsPageP
           />
         </div>
         
-        <div style={styles.chartContainer}>
+        <div style={styles.chartContainer} className="chart-container">
           <h3 style={styles.chartTitle}>Portfolio Growth Comparison</h3>
           <Line data={chartData} options={chartOptions} />
         </div>
         
-        <div style={styles.buttonGroup}>
+        <div style={styles.buttonGroup} className="button-group">
           <button style={styles.btnSecondary} onClick={downloadExcel}>Download Detailed Excel Report</button>
           <button style={styles.btnPrimary} onClick={onRestart}>Start Over</button>
         </div>

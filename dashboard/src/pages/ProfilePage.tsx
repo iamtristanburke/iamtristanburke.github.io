@@ -14,10 +14,10 @@ interface ProfilePageProps {
 
 export default function ProfilePage({ config, updateConfig, onNext, onBack }: ProfilePageProps) {
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="page-container">
       <ProgressBar current={2} />
       <Section title="Portfolio Configuration">
-        <div style={styles.formGrid}>
+        <div style={styles.formGrid} className="form-grid">
           <FormGroup label="Initial Portfolio Value ($)">
             <input 
               type="text" 

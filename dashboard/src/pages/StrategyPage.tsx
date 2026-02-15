@@ -155,7 +155,7 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack }: St
   };
   
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="page-container">
       <ProgressBar current={4} />
       <Section title="Trading Strategy & Execution">
         <p style={styles.sectionDesc}>
@@ -163,7 +163,7 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack }: St
         </p>
         
         <h3 style={styles.subsectionTitle}>Trading Algorithms</h3>
-        <div style={styles.strategyGrid}>
+        <div style={styles.strategyGrid} className="strategy-grid">
           {strategies.map(strategy => (
             <div key={strategy.id}>
               <div 
@@ -231,7 +231,7 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack }: St
         </div>
         
         <h3 style={styles.subsectionTitle}>Execution Parameters</h3>
-        <div style={styles.formGrid}>
+        <div style={styles.formGrid} className="form-grid">
           <FormGroup label="Rebalancing Frequency">
             <select value={config.rebalanceFreq} onChange={(e) => updateConfig('rebalanceFreq', e.target.value)} style={styles.input}>
               <option value="daily">Daily</option>
@@ -255,7 +255,7 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack }: St
         <p style={styles.sectionDesc}>
           Taxes significantly impact your returns. Configure your tax situation for accurate after-tax performance.
         </p>
-        <div style={styles.formGrid}>
+        <div style={styles.formGrid} className="form-grid">
           <FormGroup label="Account Type">
             <select value={config.accountType || 'taxable'} onChange={(e) => updateConfig('accountType', e.target.value)} style={styles.input}>
               <option value="taxable">Taxable Brokerage</option>

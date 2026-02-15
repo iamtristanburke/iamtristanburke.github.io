@@ -3,13 +3,13 @@ const COLT_IMAGE = "data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1
 
 export default function ColtHeader() {
   return (
-    <div style={styles.header}>
-      <div style={styles.headerContent}>
+    <div style={styles.header} className="colt-header">
+      <div style={styles.headerContent} className="colt-header-content">
         <div style={styles.coltContainer}>
           <img src={COLT_IMAGE} alt="Colt Road" style={styles.coltImage} />
         </div>
         <div>
-          <h1 style={styles.brandName}>Colt Road Manager</h1>
+          <h1 style={styles.brandName} className="colt-brand-name">Colt Road Manager</h1>
           <p style={styles.brandSubtitle}>Nimble Engine to Test Your Ideas</p>
         </div>
       </div>

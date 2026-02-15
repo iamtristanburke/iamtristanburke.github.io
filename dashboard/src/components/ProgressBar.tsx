@@ -4,7 +4,7 @@ interface ProgressBarProps {
 
 export default function ProgressBar({ current }: ProgressBarProps) {
   return (
-    <div style={styles.progressBar}>
+    <div style={styles.progressBar} className="progress-bar">
       {[1, 2, 3, 4, 5].map(step => (
         <div
           key={step}
@@ -12,6 +12,7 @@ export default function ProgressBar({ current }: ProgressBarProps) {
             ...styles.progressStep,
             backgroundColor: step < current ? '#a98a4f' : step === current ? '#2d4a2b' : '#d9d2c1'
           }}
+          className="progress-step"
         >
           {step}
         </div>

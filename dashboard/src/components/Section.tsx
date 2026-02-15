@@ -7,7 +7,7 @@ interface SectionProps {
 
 export default function Section({ title, children }: SectionProps) {
   return (
-    <div style={styles.section}>
+    <div style={styles.section} className="section-container">
       <h2 style={styles.sectionHeader}>{title}</h2>
       {children}
     </div>

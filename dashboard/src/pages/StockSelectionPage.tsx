@@ -62,12 +62,12 @@ export default function StockSelectionPage({ config, toggleStock, onNext, onBack
   };
   
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="page-container">
       <ProgressBar current={3} />
       <Section title="Stock Selection">
         <p style={styles.sectionDesc}>Select stocks for your equity allocation. Key fundamental metrics are shown below.</p>
         
-        <div style={styles.filterBar}>
+        <div style={styles.filterBar} className="filter-bar">
           <div style={styles.filterGroup}>
             <label style={styles.filterLabel}>Index:</label>
             <select value={selectedIndex} onChange={(e) => setSelectedIndex(e.target.value as 'SP500' | 'RUSSELL2000')} style={styles.filterSelect}>
@@ -82,7 +82,7 @@ export default function StockSelectionPage({ config, toggleStock, onNext, onBack
           </div>
         </div>
         
-        <div style={styles.tableWrapper}>
+        <div style={styles.tableWrapper} className="table-wrapper">
           <table style={styles.table}>
             <thead>
               <tr style={styles.tableHeader}>

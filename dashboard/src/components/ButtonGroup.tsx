@@ -6,7 +6,7 @@ interface ButtonGroupProps {
 
 export default function ButtonGroup({ onBack, onNext, nextLabel = "Continue" }: ButtonGroupProps) {
   return (
-    <div style={styles.buttonGroup}>
+    <div style={styles.buttonGroup} className="button-group">
       {onBack && <button style={styles.btnSecondary} onClick={onBack}>Back</button>}
       <button style={styles.btnPrimary} onClick={onNext}>{nextLabel}</button>
     </div>
