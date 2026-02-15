@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -11,6 +11,7 @@ import {
   Legend,
   Filler
 } from 'chart.js';
+import type { ChartOptions } from 'chart.js';
 import * as XLSX from 'xlsx';
 import { Config, BacktestResults } from '../types/colt-road';
 import ProgressBar from '../components/ProgressBar';
@@ -194,16 +195,20 @@ export default function ResultsPage({ results, config, onRestart }: ResultsPageP
     ]
   };
   
-  const chartOptions = {
+  const chartOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: true,
     aspectRatio: 2,
     plugins: {
       legend: {
         display: true,
-        position: 'top' as const,
+        position: 'top',
         labels: {
-          font: { family: 'Montserrat', size: 13, weight: '600' },
+          font: {
+            family: 'Montserrat',
+            size: 13,
+            weight: '600'
+          },
           padding: 20,
           usePointStyle: true
         }
@@ -212,7 +217,12 @@ export default function ResultsPage({ results, config, onRestart }: ResultsPageP
     scales: {
       y: {
         ticks: {
-          callback: (value: any) => formatCurrency(value/1000, 0) + 'K'
+          callback: function(value) {
+            if (typeof value === 'number') {
+              return formatCurrency(value/1000, 0) + 'K';
+            }
+            return value;
+          }
         }
       }
     }
