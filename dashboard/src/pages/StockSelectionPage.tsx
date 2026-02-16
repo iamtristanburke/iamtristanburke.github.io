@@ -1,22 +1,38 @@
 import { useState } from 'react';
-import { Config, Stock } from '../types/colt-road';
+import { Config, Stock, InvestmentStyle } from '../types/colt-road';
 import { ALL_STOCKS } from '../utils/stockDatabase';
 import { formatMarketCap } from '../utils/formatters';
 import ProgressBar from '../components/ProgressBar';
 import Section from '../components/Section';
 import ButtonGroup from '../components/ButtonGroup';
 
+const THEME_OPTIONS = ['Technology', 'Healthcare', 'Dividend / Income', 'ESG', 'Growth', 'Value', 'Defensive', 'Cyclical', 'International'];
+
 interface StockSelectionPageProps {
   config: Config;
+  updateConfig: (key: keyof Config, value: any) => void;
   toggleStock: (ticker: string) => void;
   onNext: () => void;
   onBack: () => void;
 }
 
-export default function StockSelectionPage({ config, toggleStock, onNext, onBack }: StockSelectionPageProps) {
+export default function StockSelectionPage({ config, updateConfig, toggleStock, onNext, onBack }: StockSelectionPageProps) {
   const [selectedIndex, setSelectedIndex] = useState<'SP500' | 'RUSSELL2000'>('SP500');
   const [sortBy, setSortBy] = useState<keyof Stock>('marketCap');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const investmentStyle = config.investmentStyle ?? 'balanced';
+  const themes = config.themes ?? [];
+  const buySignals = config.buySignals ?? { technical: true, fundamental: true, ai: false };
+
+  const toggleTheme = (theme: string) => {
+    const next = themes.includes(theme) ? themes.filter(t => t !== theme) : [...themes, theme];
+    updateConfig('themes', next);
+  };
+
+  const setBuySignal = (key: keyof typeof buySignals, value: boolean) => {
+    updateConfig('buySignals', { ...buySignals, [key]: value });
+  };
   
   const filteredStocks = ALL_STOCKS.filter(stock => stock.index === selectedIndex);
   
@@ -64,7 +80,67 @@ export default function StockSelectionPage({ config, toggleStock, onNext, onBack
   return (
     <div style={styles.container} className="page-container">
       <ProgressBar current={3} />
-      <Section title="Stock Selection">
+      <Section title="2. What stocks should you be buying?">
+        <p style={styles.sectionDesc}>
+          Define your investment style, themes you care about, and what signals (technical, fundamental, or AI-based) should drive buy decisions. Then choose the stocks in your universe.
+        </p>
+
+        <h3 style={styles.subsectionTitle}>Investment style</h3>
+        <div style={styles.optionRow}>
+          {(['growth', 'income', 'balanced'] as InvestmentStyle[]).map(style => (
+            <label key={style} style={styles.radioLabel}>
+              <input
+                type="radio"
+                name="investmentStyle"
+                checked={investmentStyle === style}
+                onChange={() => updateConfig('investmentStyle', style)}
+                style={styles.radio}
+              />
+              <span style={{ textTransform: 'capitalize' }}>{style}</span>
+            </label>
+          ))}
+        </div>
+
+        <h3 style={styles.subsectionTitle}>Themes / industries</h3>
+        <p style={styles.hint}>Select any themes or industries you're interested in. AI can use these to focus recommendations.</p>
+        <div style={styles.themeGrid}>
+          {THEME_OPTIONS.map(theme => (
+            <label
+              key={theme}
+              style={{
+                ...styles.themeChip,
+                ...(themes.includes(theme) ? styles.themeChipSelected : {})
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={themes.includes(theme)}
+                onChange={() => toggleTheme(theme)}
+                style={styles.checkbox}
+              />
+              {theme}
+            </label>
+          ))}
+        </div>
+
+        <h3 style={styles.subsectionTitle}>Buy signals</h3>
+        <p style={styles.hint}>What should drive a &quot;buy&quot; decision? Traditional technical/fundamental and/or AI-based signals.</p>
+        <div style={styles.optionRow}>
+          <label style={styles.checkLabel}>
+            <input type="checkbox" checked={buySignals.technical} onChange={(e) => setBuySignal('technical', e.target.checked)} style={styles.checkbox} />
+            Technical analysis
+          </label>
+          <label style={styles.checkLabel}>
+            <input type="checkbox" checked={buySignals.fundamental} onChange={(e) => setBuySignal('fundamental', e.target.checked)} style={styles.checkbox} />
+            Fundamental data
+          </label>
+          <label style={styles.checkLabel}>
+            <input type="checkbox" checked={buySignals.ai} onChange={(e) => setBuySignal('ai', e.target.checked)} style={styles.checkbox} />
+            AI / non-traditional signals
+          </label>
+        </div>
+
+        <h3 style={styles.subsectionTitle}>Your stock universe</h3>
         <p style={styles.sectionDesc}>Select stocks for your equity allocation. Key fundamental metrics are shown below.</p>
         
         <div style={styles.filterBar} className="filter-bar">
@@ -140,7 +216,72 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   sectionDesc: {
     marginBottom: '2rem',
-    color: '#6d6658'
+    color: '#6d6658',
+    lineHeight: 1.5
+  },
+  subsectionTitle: {
+    fontFamily: "'Libre Baskerville', serif",
+    fontSize: '1.35rem',
+    color: '#0f1f35',
+    marginTop: '2rem',
+    marginBottom: '0.75rem',
+    paddingBottom: '0.5rem',
+    borderBottom: '2px solid #d9d2c1'
+  },
+  hint: {
+    fontSize: '0.9rem',
+    color: '#6d6658',
+    marginBottom: '1rem'
+  },
+  optionRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '1.5rem',
+    alignItems: 'center',
+    marginBottom: '1.5rem'
+  },
+  radioLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    cursor: 'pointer',
+    fontWeight: 600,
+    color: '#2c2c2c'
+  },
+  radio: {
+    width: '18px',
+    height: '18px',
+    accentColor: '#2d4a2b',
+    cursor: 'pointer'
+  },
+  checkLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    cursor: 'pointer',
+    fontWeight: 600,
+    color: '#2c2c2c'
+  },
+  themeGrid: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '0.75rem',
+    marginBottom: '1.5rem'
+  },
+  themeChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.5rem 1rem',
+    background: '#f5f2e9',
+    border: '2px solid #d9d2c1',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: 500
+  },
+  themeChipSelected: {
+    borderColor: '#2d4a2b',
+    background: 'rgba(45, 74, 43, 0.1)'
   },
   filterBar: {
     display: 'flex',

@@ -6,11 +6,18 @@ export default function LandingPage({ onStart }: LandingPageProps) {
   return (
     <div style={styles.landingContainer} className="landing-container">
       <div style={styles.landingHero} className="landing-hero">
-        <h2 style={styles.landingTitle} className="landing-title">Test Your Investment Strategy</h2>
-        <p style={styles.landingText} className="landing-text">
-          Backtest portfolio strategies using historical market data. Compare different allocations and stock selections 
-          to understand how they would have performed in real market conditions.
+        <h2 style={styles.landingTitle} className="landing-title">AI-Powered Personal Investment Allocation</h2>
+        <p style={styles.missionStatement} className="landing-mission">
+          We are designing an AI assistant to help allocate the capital you&apos;ve set aside for personal investments.
         </p>
+        <p style={styles.landingText} className="landing-text">
+          The assistant is built around three questions that shape your portfolio:
+        </p>
+        <ol style={styles.questionList}>
+          <li><strong>What&apos;s your debt/equity allocation?</strong> — AI uses market factors (real bond yields, equity valuations, Buffett ratio) and your personal situation (time horizon, age, return needs, risk appetite) to suggest and rebalance your mix over time.</li>
+          <li><strong>What stocks should you be buying?</strong> — Your investment style (growth vs. income), themes and industries, and the signals you care about (technical, fundamental, or AI-based) define your stock universe and buy criteria.</li>
+          <li><strong>How much to balance within the portfolio?</strong> — What prompts buys and sells in your universe: traditional technical analysis, AI-based signals, or other rules.</li>
+        </ol>
         <p style={styles.disclaimer}>
           <strong>Disclaimer:</strong> This tool is for educational and research purposes only. It is not investment advice, 
           financial advice, or a recommendation to buy or sell any securities. Past performance does not guarantee future results. 
@@ -45,11 +52,26 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: '1.5rem',
     lineHeight: 1.2
   },
+  missionStatement: {
+    fontSize: '1.35rem',
+    color: '#0f1f35',
+    marginBottom: '1.5rem',
+    lineHeight: 1.6,
+    fontStyle: 'italic'
+  },
   landingText: {
-    fontSize: '1.3rem',
+    fontSize: '1.2rem',
     color: '#6d6658',
-    marginBottom: '2rem',
+    marginBottom: '1rem',
     lineHeight: 1.6
+  },
+  questionList: {
+    fontSize: '1.05rem',
+    color: '#2c2c2c',
+    marginBottom: '2rem',
+    paddingLeft: '1.5rem',
+    lineHeight: 1.7,
+    textAlign: 'left'
   },
   disclaimer: {
     fontSize: '0.9rem',

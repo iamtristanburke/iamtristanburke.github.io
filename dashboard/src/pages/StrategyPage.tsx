@@ -154,15 +154,39 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack }: St
     });
   };
   
+  const balanceSignals = config.balanceSignals ?? { technical: true, ai: false, other: false };
+  const setBalanceSignal = (key: keyof typeof balanceSignals, value: boolean) => {
+    updateConfig('balanceSignals', { ...balanceSignals, [key]: value });
+  };
+
   return (
     <div style={styles.container} className="page-container">
       <ProgressBar current={4} />
-      <Section title="Trading Strategy & Execution">
+      <Section title="3. How much to balance within the portfolio?">
+        <p style={styles.sectionDesc}>
+          What prompts buys and sells of the stocks in your universe? Choose traditional technical analysis, AI-based signals, and/or other rules. Then configure specific strategies and execution.
+        </p>
+
+        <h3 style={styles.subsectionTitle}>What triggers buys and sells?</h3>
+        <div style={styles.optionRow}>
+          <label style={styles.checkLabel}>
+            <input type="checkbox" checked={balanceSignals.technical} onChange={(e) => setBalanceSignal('technical', e.target.checked)} style={styles.paramCheckbox} />
+            Traditional technical analysis
+          </label>
+          <label style={styles.checkLabel}>
+            <input type="checkbox" checked={balanceSignals.ai} onChange={(e) => setBalanceSignal('ai', e.target.checked)} style={styles.paramCheckbox} />
+            AI-based signals
+          </label>
+          <label style={styles.checkLabel}>
+            <input type="checkbox" checked={balanceSignals.other} onChange={(e) => setBalanceSignal('other', e.target.checked)} style={styles.paramCheckbox} />
+            Other rules
+          </label>
+        </div>
+        
+        <h3 style={styles.subsectionTitle}>Trading Algorithms</h3>
         <p style={styles.sectionDesc}>
           Select and configure trading algorithms. Click a strategy to adjust its parameters.
         </p>
-        
-        <h3 style={styles.subsectionTitle}>Trading Algorithms</h3>
         <div style={styles.strategyGrid} className="strategy-grid">
           {strategies.map(strategy => (
             <div key={strategy.id}>
@@ -324,6 +348,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: '1.5rem',
     paddingBottom: '0.75rem',
     borderBottom: '2px solid #d9d2c1'
+  },
+  optionRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '1.5rem',
+    alignItems: 'center',
+    marginBottom: '2rem'
+  },
+  checkLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    cursor: 'pointer',
+    fontWeight: 600,
+    color: '#2c2c2c',
+    fontSize: '0.95rem'
   },
   strategyGrid: {
     display: 'grid',
