@@ -1,26 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+}
+
 body {
   margin: 0;
-  font-family: 'Montserrat', sans-serif;
-  background-color: #8b7355;
-  background-image: 
-    repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px),
-    repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px),
-    repeating-linear-gradient(90deg, transparent 0px, transparent 279px, #d4a650 279px, #d4a650 281px, #c99a45 281px, #c99a45 285px, #d4a650 285px, #d4a650 287px, transparent 287px, transparent 599px),
-    repeating-linear-gradient(0deg, transparent 0px, transparent 279px, #d4a650 279px, #d4a650 281px, #c99a45 281px, #c99a45 285px, #d4a650 285px, #d4a650 287px, transparent 287px, transparent 599px),
-    repeating-linear-gradient(90deg, transparent 0px, transparent 139px, #8b3a4a 139px, #8b3a4a 141px, #7a3340 141px, #7a3340 143px, #8b3a4a 143px, #8b3a4a 145px, transparent 145px, transparent 599px),
-    repeating-linear-gradient(0deg, transparent 0px, transparent 359px, #8b3a4a 359px, #8b3a4a 361px, #7a3340 361px, #7a3340 363px, #8b3a4a 363px, #8b3a4a 365px, transparent 365px, transparent 599px),
-    repeating-linear-gradient(90deg, transparent 0px, transparent 49px, #3d5a3c 49px, #3d5a3c 50px, #2d4a2b 50px, #2d4a2b 52px, #3d5a3c 52px, #3d5a3c 53px, transparent 53px, transparent 99px, #3d5a3c 99px, #3d5a3c 100px, transparent 100px, transparent 599px),
-    repeating-linear-gradient(0deg, transparent 0px, transparent 449px, #3d5a3c 449px, #3d5a3c 450px, #2d4a2b 450px, #2d4a2b 452px, #3d5a3c 452px, #3d5a3c 453px, transparent 453px, transparent 499px, #3d5a3c 499px, #3d5a3c 500px, transparent 500px, transparent 599px),
-    repeating-linear-gradient(90deg, transparent 0px, transparent 29px, rgba(235, 220, 195, 0.4) 29px, rgba(235, 220, 195, 0.4) 30px, transparent 30px, transparent 59px, rgba(235, 220, 195, 0.35) 59px, rgba(235, 220, 195, 0.35) 60px, transparent 60px, transparent 89px),
-    repeating-linear-gradient(0deg, transparent 0px, transparent 29px, rgba(235, 220, 195, 0.4) 29px, rgba(235, 220, 195, 0.4) 30px, transparent 30px, transparent 59px, rgba(235, 220, 195, 0.35) 59px, rgba(235, 220, 195, 0.35) 60px, transparent 60px, transparent 89px),
-    repeating-linear-gradient(90deg, #8b7355 0px, #8b7355 150px, #6d5a45 150px, #6d5a45 300px, #7a6550 300px, #7a6550 450px, #8b7355 450px, #8b7355 600px),
-    repeating-linear-gradient(0deg, transparent 0px, transparent 150px, rgba(90, 70, 50, 0.3) 150px, rgba(90, 70, 50, 0.3) 300px, transparent 300px, transparent 450px, rgba(90, 70, 50, 0.2) 450px, rgba(90, 70, 50, 0.2) 600px);
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #6d5a45;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12)),
+    url('/plaid-fabric.png');
+  background-size: auto, 280px auto;
+  background-repeat: repeat;
   background-attachment: fixed;
   min-height: 100vh;
 }
@@ -29,11 +28,20 @@ body {
   min-height: 100vh;
 }
 
+/* Progress bar: hover for clickable steps */
+.progress-bar button.progress-step--clickable:hover {
+  background-color: rgba(45, 74, 43, 0.08);
+}
+.progress-bar button.progress-step--clickable:hover .progress-step-bar {
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
   /* Header adjustments */
   .colt-header {
-    padding: 1rem !important;
+    padding: 0.6rem 1rem !important;
   }
   
   .colt-header-content {
@@ -99,13 +107,12 @@ body {
   /* Progress bar */
   .progress-bar {
     padding: 1rem !important;
-    gap: 0.5rem !important;
   }
   
-  .progress-step {
+  .progress-bar .progress-step-bar {
     width: 40px !important;
-    height: 40px !important;
-    font-size: 1rem !important;
+    height: 28px !important;
+    font-size: 0.85rem !important;
   }
   
   /* Period selector */

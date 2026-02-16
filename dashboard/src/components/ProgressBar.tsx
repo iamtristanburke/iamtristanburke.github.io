@@ -1,35 +1,79 @@
 interface ProgressBarProps {
   current: number;
   steps?: string[];
+  onStepClick?: (step: number) => void;
 }
 
-const DEFAULT_STEPS = ['Landing', '1. Debt/Equity', '2. Stocks', '3. Balance', 'Results'];
+const DEFAULT_STEPS = ['Landing', 'Allocation', 'Stocks', 'Balance', 'Results'];
 
-export default function ProgressBar({ current, steps = DEFAULT_STEPS }: ProgressBarProps) {
+/** Bubble shows 1 above Allocation, 2 above Stocks, 3 above Balance, 4 above Results; Landing shows L. */
+function bubbleLabel(step: number, isCompleted: boolean): string | number {
+  if (isCompleted) return '✓';
+  if (step === 1) return 'L'; // Landing
+  return step - 1; // 2→1, 3→2, 4→3, 5→4
+}
+
+export default function ProgressBar({ current, steps = DEFAULT_STEPS, onStepClick }: ProgressBarProps) {
+  const isClickable = !!onStepClick;
+
   return (
     <div style={styles.progressBar} className="progress-bar">
-      {steps.map((label, idx) => {
-        const step = idx + 1;
-        return (
-          <div
-            key={step}
-            style={{
-              ...styles.progressStep,
-              backgroundColor: step < current ? '#a98a4f' : step === current ? '#2d4a2b' : '#d9d2c1'
-            }}
-            className="progress-step"
-            title={label}
-          >
-            {step}
-          </div>
-        );
-      })}
-      <div style={styles.stepLabels}>
-        {steps.map((label, idx) => (
-          <span key={idx} style={{ ...styles.stepLabel, color: idx + 1 === current ? '#0f1f35' : '#6d6658' }}>
-            {label}
-          </span>
-        ))}
+      <div style={styles.track}>
+        {steps.map((label, idx) => {
+          const step = idx + 1;
+          const isCompleted = step < current;
+          const isCurrent = step === current;
+          const isUpcoming = step > current;
+
+          return (
+            <div key={step} style={styles.stepWrapper}>
+              <button
+                type="button"
+                style={{
+                  ...styles.stepButton,
+                  ...(isClickable ? { cursor: 'pointer' } : { cursor: 'default' }),
+                  ...(isCurrent ? styles.stepButtonCurrent : {}),
+                  ...(isCompleted ? styles.stepButtonDone : {}),
+                  ...(isUpcoming ? styles.stepButtonUpcoming : {})
+                }}
+                className={`progress-step${isClickable ? ' progress-step--clickable' : ''}`}
+                title={label}
+                onClick={isClickable ? () => onStepClick(step) : undefined}
+                aria-label={`Go to step ${step}: ${label}`}
+                aria-current={isCurrent ? 'step' : undefined}
+              >
+                <span
+                  className="progress-step-bar"
+                  style={{
+                    ...styles.bar,
+                    backgroundColor: isCompleted ? '#a98a4f' : isCurrent ? '#2d4a2b' : '#d9d2c1'
+                  }}
+                >
+                  {bubbleLabel(step, isCompleted)}
+                </span>
+                <span
+                  style={{
+                    ...styles.label,
+                    ...(isCurrent ? styles.labelCurrent : {}),
+                    ...(isCompleted ? styles.labelDone : {}),
+                    ...(isUpcoming ? styles.labelUpcoming : {})
+                  }}
+                >
+                  {label}
+                </span>
+              </button>
+              {idx < steps.length - 1 && (
+                <div
+                  style={{
+                    ...styles.connector,
+                    ...(step < current ? styles.connectorDone : {})
+                  }}
+                  aria-hidden
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -37,41 +81,86 @@ export default function ProgressBar({ current, steps = DEFAULT_STEPS }: Progress
 
 const styles: { [key: string]: React.CSSProperties } = {
   progressBar: {
-    position: 'relative',
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '1rem',
     margin: '3rem 0',
-    padding: '2rem 2rem 2.5rem',
-    background: '#fbf9f4',
-    border: '2px solid #d9d2c1',
-    boxShadow: '0 2px 8px rgba(44, 44, 44, 0.08)'
+    padding: '2rem 1.5rem',
+    background: 'linear-gradient(180deg, #fbf9f4 0%, #f5f2eb 100%)',
+    border: '1px solid #e0dcd2',
+    borderRadius: '12px',
+    boxShadow: '0 4px 20px rgba(45, 74, 43, 0.06), 0 1px 3px rgba(0,0,0,0.04)'
   },
-  progressStep: {
-    width: '50px',
-    height: '50px',
-    borderRadius: '50%',
+  track: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    gap: 0,
+    flexWrap: 'wrap',
+    rowGap: '1.5rem'
+  },
+  stepWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    flex: '1 1 0',
+    minWidth: '80px',
+    maxWidth: '140px'
+  },
+  connector: {
+    flex: '1 1 0',
+    minWidth: '12px',
+    height: '3px',
+    borderRadius: 2,
+    backgroundColor: '#e0dcd2',
+    margin: '0 4px'
+  },
+  connectorDone: {
+    backgroundColor: '#a98a4f'
+  },
+  stepButton: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.5rem 0.75rem',
+    border: 'none',
+    background: 'none',
+    cursor: 'pointer',
+    borderRadius: '8px',
+    transition: 'background-color 0.2s ease, transform 0.15s ease'
+  },
+  stepButtonCurrent: {
+    fontWeight: 700
+  },
+  stepButtonDone: {},
+  stepButtonUpcoming: {},
+  bar: {
+    width: '48px',
+    height: '32px',
+    borderRadius: '6px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontWeight: 700,
     color: 'white',
-    fontSize: '1.2rem'
+    fontSize: '0.95rem',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
   },
-  stepLabels: {
-    position: 'absolute',
-    bottom: '-1.5rem',
-    left: 0,
-    right: 0,
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '0 0.5rem',
-    fontSize: '0.7rem',
-    fontWeight: 600
+  label: {
+    fontFamily: "var(--font-serif, 'Cormorant Garamond', Georgia, serif)",
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    letterSpacing: '0.02em',
+    textAlign: 'center',
+    lineHeight: 1.2
   },
-  stepLabel: {
-    maxWidth: '18%',
-    textAlign: 'center'
+  labelCurrent: {
+    color: '#0f1f35',
+    fontWeight: 700
+  },
+  labelDone: {
+    color: '#5c5346'
+  },
+  labelUpcoming: {
+    color: '#9a9185'
   }
 };
 

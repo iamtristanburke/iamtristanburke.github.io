@@ -10,6 +10,7 @@ interface StrategyPageProps {
   updateConfig: (key: keyof Config, value: any) => void;
   onRun: () => void;
   onBack: () => void;
+  onStepClick?: (step: number) => void;
 }
 
 interface Strategy {
@@ -29,7 +30,7 @@ interface Strategy {
   }>;
 }
 
-export default function StrategyPage({ config, updateConfig, onRun, onBack }: StrategyPageProps) {
+export default function StrategyPage({ config, updateConfig, onRun, onBack, onStepClick }: StrategyPageProps) {
   const [expandedStrategy, setExpandedStrategy] = useState<string | null>(null);
   
   const strategies: Strategy[] = [
@@ -161,10 +162,10 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack }: St
 
   return (
     <div style={styles.container} className="page-container">
-      <ProgressBar current={4} />
+      <ProgressBar current={4} onStepClick={onStepClick} />
       <Section title="3. How much to balance within the portfolio?">
         <p style={styles.sectionDesc}>
-          What prompts buys and sells of the stocks in your universe? Choose traditional technical analysis, AI-based signals, and/or other rules. Then configure specific strategies and execution.
+          What prompts buys and sells of the stocks in your universe? Choose traditional technical analysis, Colt Road–based signals, and/or other rules. Then configure specific strategies and execution.
         </p>
 
         <h3 style={styles.subsectionTitle}>What triggers buys and sells?</h3>
@@ -175,7 +176,7 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack }: St
           </label>
           <label style={styles.checkLabel}>
             <input type="checkbox" checked={balanceSignals.ai} onChange={(e) => setBalanceSignal('ai', e.target.checked)} style={styles.paramCheckbox} />
-            AI-based signals
+            Colt Road–based signals
           </label>
           <label style={styles.checkLabel}>
             <input type="checkbox" checked={balanceSignals.other} onChange={(e) => setBalanceSignal('other', e.target.checked)} style={styles.paramCheckbox} />
@@ -341,7 +342,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#6d6658'
   },
   subsectionTitle: {
-    fontFamily: "'Libre Baskerville', serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '1.5rem',
     color: '#0f1f35',
     marginTop: '3rem',
@@ -397,7 +398,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer'
   },
   strategyName: {
-    fontFamily: "'Libre Baskerville', serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '1.2rem',
     color: '#0f1f35',
     margin: 0
@@ -420,7 +421,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '0.5rem 1rem',
     cursor: 'pointer',
     fontSize: '0.85rem',
-    fontFamily: "'Montserrat', sans-serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontWeight: 600
   },
   paramList: {
@@ -471,7 +472,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: '2px solid #d9d2c1',
     padding: '0.85rem 1rem',
     color: '#2c2c2c',
-    fontFamily: "'Montserrat', sans-serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '0.95rem',
     borderRadius: 0
   },

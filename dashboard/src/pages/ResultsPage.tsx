@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -14,6 +14,7 @@ import {
 import type { ChartOptions } from 'chart.js';
 import * as XLSX from 'xlsx';
 import { Config, BacktestResults } from '../types/colt-road';
+import { ALL_STOCKS } from '../utils/stockDatabase';
 import ProgressBar from '../components/ProgressBar';
 import Section from '../components/Section';
 import { formatNumber, formatCurrency } from '../utils/formatters';
@@ -33,6 +34,7 @@ interface ResultsPageProps {
   results: BacktestResults;
   config: Config;
   onRestart: () => void;
+  onStepClick?: (step: number) => void;
 }
 
 interface ComparisonCardProps {
@@ -74,7 +76,7 @@ function ComparisonCard({ title, totalReturn, annualizedReturn, finalValue, high
   );
 }
 
-export default function ResultsPage({ results, config, onRestart }: ResultsPageProps) {
+export default function ResultsPage({ results, config, onRestart, onStepClick }: ResultsPageProps) {
   const [selectedPeriod, setSelectedPeriod] = useState(0);
   
   const currentPeriod = results.periods[selectedPeriod];
@@ -159,78 +161,175 @@ export default function ResultsPage({ results, config, onRestart }: ResultsPageP
     XLSX.writeFile(wb, 'Colt_Road_Detailed_Analysis.xlsx');
   };
   
-  // Prepare chart data
-  const chartData = {
-    labels: currentPeriod.data.dates.filter((_, i) => i % 60 === 0),
-    datasets: [
-      {
-        label: 'Your Portfolio',
-        data: currentPeriod.data.portfolioValues.filter((_, i) => i % 60 === 0),
-        borderColor: '#2d4a2b',
-        backgroundColor: 'rgba(45, 74, 43, 0.1)',
-        borderWidth: 3,
-        fill: false,
-        tension: 0.3
-      },
-      {
-        label: 'S&P 500',
-        data: currentPeriod.data.sp500Values.filter((_, i) => i % 60 === 0),
-        borderColor: '#1a2f4a',
-        backgroundColor: 'rgba(26, 47, 74, 0.1)',
-        borderWidth: 2,
-        fill: false,
-        tension: 0.3,
-        borderDash: [5, 5]
-      },
-      {
-        label: '60/40 Portfolio',
-        data: currentPeriod.data.balanced6040Values.filter((_, i) => i % 60 === 0),
-        borderColor: '#a98a4f',
-        backgroundColor: 'rgba(169, 138, 79, 0.1)',
-        borderWidth: 2,
-        fill: false,
-        tension: 0.3,
-        borderDash: [10, 5]
-      }
-    ]
-  };
-  
-  const chartOptions: ChartOptions<'line'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'top',
-        labels: {
-          font: {
-            family: 'Montserrat',
-            size: 13,
-            weight: 600
-          },
-          padding: 20,
-          usePointStyle: true
+  // Prepare chart data and options once per period so the chart doesn't reflow or resize
+  const { chartData, chartOptions } = useMemo(() => {
+    const dates = currentPeriod.data.dates;
+    const n = dates.length;
+    const chartIndices = n <= 0 ? [] : (() => {
+      const every = Math.max(1, Math.floor(n / 80));
+      const indices: number[] = [];
+      for (let i = 0; i < n; i += every) indices.push(i);
+      if (n > 0 && indices[indices.length - 1] !== n - 1) indices.push(n - 1);
+      return indices;
+    })();
+
+    const portfolio = chartIndices.map((i) => currentPeriod.data.portfolioValues[i]);
+    const sp500 = chartIndices.map((i) => currentPeriod.data.sp500Values[i]);
+    const balanced = chartIndices.map((i) => currentPeriod.data.balanced6040Values[i]);
+    const allValues = [...portfolio, ...sp500, ...balanced].filter((v) => typeof v === 'number');
+    const dataMin = allValues.length ? Math.min(...allValues) : 0;
+    const dataMax = allValues.length ? Math.max(...allValues) : 1;
+    const yMin = Math.max(0, Math.floor(dataMin * 0.95 / 1000) * 1000);
+    const yMax = Math.ceil(dataMax * 1.05 / 1000) * 1000;
+
+    const data = {
+      labels: chartIndices.map((i) => dates[i]),
+      datasets: [
+        {
+          label: 'Your Portfolio',
+          data: portfolio,
+          borderColor: '#2d4a2b',
+          backgroundColor: 'rgba(45, 74, 43, 0.1)',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.3
+        },
+        {
+          label: 'S&P 500',
+          data: sp500,
+          borderColor: '#1a2f4a',
+          backgroundColor: 'rgba(26, 47, 74, 0.1)',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3,
+          borderDash: [5, 5]
+        },
+        {
+          label: '60/40 Portfolio',
+          data: balanced,
+          borderColor: '#a98a4f',
+          backgroundColor: 'rgba(169, 138, 79, 0.1)',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3,
+          borderDash: [10, 5]
         }
-      }
-    },
-    scales: {
-      y: {
-        ticks: {
-          callback: function(value) {
-            if (typeof value === 'number') {
-              return formatCurrency(value/1000, 0) + 'K';
+      ]
+    };
+
+    const options: ChartOptions<'line'> = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            font: { family: 'Cormorant Garamond', size: 13, weight: 600 },
+            padding: 20,
+            usePointStyle: true
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          grid: { display: false }
+        },
+        y: {
+          min: yMin,
+          max: yMax,
+          grid: { color: 'rgba(168, 155, 132, 0.25)' },
+          ticks: {
+            callback(this: unknown, value: string | number) {
+              if (typeof value === 'number') return formatCurrency(value / 1000, 0) + 'K';
+              return value;
             }
-            return value;
           }
         }
       }
-    }
-  };
+    };
+
+    return { chartData: data, chartOptions: options };
+  }, [currentPeriod, selectedPeriod]);
   
+  const equityPct = config.targetEquityPct ?? 60;
+  const bondPct = 100 - equityPct;
+  const equityDollars = config.portfolioValue * (equityPct / 100);
+  const bondDollars = config.portfolioValue * (bondPct / 100);
+  const selectedStocks = config.selectedStocks ?? [];
+  const stockCount = Math.max(1, selectedStocks.length);
+  const perStockDollars = equityDollars / stockCount;
+  const perStockPct = equityPct / stockCount;
+  const tickerToName = useMemo(() => {
+    const map: Record<string, string> = {};
+    ALL_STOCKS.forEach((s) => { map[s.ticker] = s.name; });
+    return map;
+  }, []);
+
+  // Suggested fixed-income implementation: breakdown by vehicle type (user can substitute their own)
+  const bondBreakdown: { label: string; pctOfBonds: number }[] = [
+    { label: 'Money market / cash', pctOfBonds: 0.20 },
+    { label: 'Short-term Treasuries (e.g. 2-year)', pctOfBonds: 0.40 },
+    { label: 'Intermediate-term bond fund (e.g. BND)', pctOfBonds: 0.40 }
+  ];
+
   return (
     <div style={styles.container} className="page-container">
-      <ProgressBar current={5} />
-      <Section title="Historical Performance Analysis">
+      <ProgressBar current={5} onStepClick={onStepClick} />
+      <Section title="Your Results">
+        <h2 style={styles.portfolioTodayTitle}>Your Colt Road Portfolio Today</h2>
+        <p style={styles.portfolioTodayDesc}>
+          Based on your time horizon, risk tolerance, share of wealth in this portfolio, and other factors, here is your recommended allocation by security.
+        </p>
+        <div style={styles.allocationTableWrap}>
+          <table style={styles.allocationTable}>
+            <thead>
+              <tr style={styles.allocationTableHeader}>
+                <th style={styles.allocationTh}>Security</th>
+                <th style={styles.allocationTh}>Amount ($)</th>
+                <th style={styles.allocationTh}>% of portfolio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {selectedStocks.length > 0 ? (
+                selectedStocks.map((ticker) => (
+                  <tr key={ticker} style={styles.allocationRow}>
+                    <td style={styles.allocationTd}>
+                      {ticker}
+                      {tickerToName[ticker] ? ` — ${tickerToName[ticker]}` : ''}
+                    </td>
+                    <td style={styles.allocationTd}>{formatCurrency(perStockDollars, 0)}</td>
+                    <td style={styles.allocationTd}>{perStockPct.toFixed(1)}%</td>
+                  </tr>
+                ))
+              ) : (
+                <tr style={styles.allocationRow}>
+                  <td style={styles.allocationTd}>Stocks (equity)</td>
+                  <td style={styles.allocationTd}>{formatCurrency(equityDollars, 0)}</td>
+                  <td style={styles.allocationTd}>{equityPct}%</td>
+                </tr>
+              )}
+              {bondBreakdown.map(({ label, pctOfBonds }) => (
+                <tr key={label} style={styles.allocationRow}>
+                  <td style={styles.allocationTd}>{label}</td>
+                  <td style={styles.allocationTd}>{formatCurrency(bondDollars * pctOfBonds, 0)}</td>
+                  <td style={styles.allocationTd}>{(bondPct * pctOfBonds).toFixed(1)}%</td>
+                </tr>
+              ))}
+              <tr style={{ ...styles.allocationRow, ...styles.allocationTotalRow }}>
+                <td style={styles.allocationTd}>Total</td>
+                <td style={styles.allocationTd}>{formatCurrency(config.portfolioValue, 0)}</td>
+                <td style={styles.allocationTd}>100%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p style={styles.bondNote}>
+          Fixed income above is a suggested implementation: money market for liquidity, short-term Treasuries for yield with limited duration risk, and a broad intermediate bond fund (e.g. BND) for diversification. You can substitute your own vehicles—e.g. individual 10-year Treasuries, TIPS, or other funds—to match your preferences and account type.
+        </p>
+
+        <h3 style={styles.historicalSectionTitle}>Historical Performance Analysis</h3>
         <p style={styles.sectionDesc}>
           Based on your debt/equity allocation, stock universe, and balance rules, here is how your portfolio would have performed historically compared to the S&P 500 and a traditional 60/40 portfolio.
         </p>
@@ -277,7 +376,9 @@ export default function ResultsPage({ results, config, onRestart }: ResultsPageP
         
         <div style={styles.chartContainer} className="chart-container">
           <h3 style={styles.chartTitle}>Portfolio Growth Comparison</h3>
-          <Line data={chartData} options={chartOptions} />
+          <div style={styles.chartWrapper}>
+            <Line data={chartData} options={chartOptions} />
+          </div>
         </div>
         
         <div style={styles.buttonGroup} className="button-group">
@@ -295,6 +396,76 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: '0 auto',
     padding: '3rem 4rem'
   },
+  portfolioTodayTitle: {
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '1.75rem',
+    fontWeight: 700,
+    color: '#0f1f35',
+    marginTop: 0,
+    marginBottom: '0.5rem'
+  },
+  portfolioTodayDesc: {
+    marginBottom: '1.5rem',
+    fontSize: '0.95rem',
+    color: '#6d6658',
+    lineHeight: 1.5,
+    maxWidth: '640px'
+  },
+  allocationTableWrap: {
+    marginBottom: '0.75rem',
+    maxWidth: '640px'
+  },
+  bondNote: {
+    marginBottom: '3rem',
+    maxWidth: '640px',
+    fontSize: '0.9rem',
+    color: '#6d6658',
+    lineHeight: 1.55
+  },
+  allocationTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    border: '2px solid #d9d2c1',
+    background: '#fdfcfa'
+  },
+  allocationTableHeader: {
+    background: '#f0ede5',
+    borderBottom: '2px solid #d9d2c1'
+  },
+  allocationTh: {
+    padding: '0.75rem 1rem',
+    textAlign: 'left',
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    color: '#0f1f35'
+  },
+  allocationRow: {
+    borderBottom: '1px solid #d9d2c1'
+  },
+  allocationTotalRow: {
+    borderBottom: 'none',
+    background: 'rgba(45, 74, 43, 0.08)',
+    fontWeight: 700
+  },
+  allocationTd: {
+    padding: '0.85rem 1rem',
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '0.95rem',
+    color: '#2c2c2c'
+  },
+  historicalSectionTitle: {
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '1.35rem',
+    fontWeight: 700,
+    color: '#0f1f35',
+    marginTop: 0,
+    marginBottom: '0.75rem',
+    paddingBottom: '0.5rem',
+    borderBottom: '2px solid #d9d2c1'
+  },
   sectionDesc: {
     marginBottom: '2rem',
     color: '#6d6658'
@@ -309,7 +480,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: 'white',
     border: '2px solid #d9d2c1',
     padding: '1rem 2rem',
-    fontFamily: "'Montserrat', sans-serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontWeight: 600,
     fontSize: '1rem',
     cursor: 'pointer',
@@ -321,7 +492,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderColor: '#2d4a2b'
   },
   periodTitle: {
-    fontFamily: "'Libre Baskerville', serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '1.8rem',
     color: '#0f1f35',
     marginBottom: '2rem',
@@ -335,7 +506,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   comparisonCard: {
     background: '#fdfcfa',
-    border: '3px solid #a89b84',
+    border: '1px solid rgba(168, 155, 132, 0.4)',
     padding: '2rem',
     position: 'relative',
     boxShadow: '0 4px 12px rgba(44, 44, 44, 0.12)'
@@ -353,7 +524,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: 'linear-gradient(90deg, #6b2737, #a98a4f, #2d4a2b)'
   },
   comparisonTitle: {
-    fontFamily: "'Libre Baskerville', serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '1.3rem',
     color: '#0f1f35',
     marginBottom: '1.5rem',
@@ -372,21 +543,26 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 600
   },
   comparisonValue: {
-    fontFamily: "'Libre Baskerville', serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '1.2rem',
     fontWeight: 700
   },
   chartContainer: {
     background: '#fdfcfa',
-    border: '3px solid #a89b84',
+    border: '1px solid rgba(168, 155, 132, 0.4)',
     padding: '3rem',
     marginBottom: '2.5rem',
     boxShadow: '0 6px 20px rgba(44, 44, 44, 0.12)',
     position: 'relative',
     overflow: 'hidden'
   },
+  chartWrapper: {
+    width: '100%',
+    height: '420px',
+    position: 'relative'
+  },
   chartTitle: {
-    fontFamily: "'Libre Baskerville', serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '1.8rem',
     fontWeight: 700,
     color: '#1a2f4a',
@@ -405,7 +581,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#f5f2e9',
     border: '3px solid #1f3622',
     padding: '1.25rem 4rem',
-    fontFamily: "'Montserrat', sans-serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontWeight: 700,
     fontSize: '1.1rem',
     cursor: 'pointer',
@@ -420,7 +596,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#2d4a2b',
     border: '2px solid #2d4a2b',
     padding: '0.85rem 1.75rem',
-    fontFamily: "'Montserrat', sans-serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontWeight: 600,
     fontSize: '0.9rem',
     cursor: 'pointer',

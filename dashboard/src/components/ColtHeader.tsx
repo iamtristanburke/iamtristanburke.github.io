@@ -1,4 +1,5 @@
-const COLT_ICON = '/colt-icon.png';
+/** Colt Road horse icon next to "Colt Road Management". Cache-bust so updates to the image are visible. */
+const COLT_ICON = '/colt-icon.png?v=2';
 
 export default function ColtHeader() {
   return (
@@ -8,8 +9,8 @@ export default function ColtHeader() {
           <img src={COLT_ICON} alt="Colt Road" style={styles.coltImage} />
         </div>
         <div style={styles.brandBlock}>
-          <h1 style={styles.brandName} className="colt-brand-name">Colt Road Manager</h1>
-          <p style={styles.brandSubtitle}>Nimble AI Engine to Test Your Ideas</p>
+          <h1 style={styles.brandName} className="colt-brand-name">Colt Road Management</h1>
+          <p style={styles.brandSubtitle}>Nimble Engine to Test Your Ideas</p>
         </div>
       </div>
     </header>
@@ -19,7 +20,7 @@ export default function ColtHeader() {
 const styles: { [key: string]: React.CSSProperties } = {
   header: {
     background: 'linear-gradient(180deg, #0f1f35 0%, #0d1929 100%)',
-    padding: '1.5rem 4rem',
+    padding: '0.5rem 4rem',
     borderBottom: '1px solid rgba(169, 138, 79, 0.35)',
     boxShadow: '0 1px 0 0 rgba(255, 255, 255, 0.04)',
     position: 'sticky',
@@ -31,25 +32,30 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: '0 auto',
     display: 'flex',
     alignItems: 'center',
-    gap: '1.75rem'
+    gap: '0.35rem'
   },
   coltContainer: {
-    width: '72px',
-    height: '72px',
+    width: '82px',
+    height: '82px',
     flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    background: 'transparent'
   },
   coltImage: {
     maxWidth: '100%',
     maxHeight: '100%',
     width: 'auto',
     height: 'auto',
+    minWidth: 0,
+    minHeight: 0,
     objectFit: 'contain',
     objectPosition: 'center',
     display: 'block',
-    filter: 'invert(1)'
+    margin: '0 auto',
+    filter: 'invert(1)',
+    mixBlendMode: 'lighten' as const
   },
   brandBlock: {
     display: 'flex',
@@ -58,18 +64,19 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '0.35rem'
   },
   brandName: {
-    fontFamily: "'Libre Baskerville', Georgia, serif",
+    fontFamily: "var(--font-serif), Georgia, 'Times New Roman', serif",
     fontSize: '1.875rem',
     fontWeight: 600,
-    letterSpacing: '-0.02em',
+    letterSpacing: '0.02em',
     color: '#f8f6f1',
     margin: 0,
     lineHeight: 1.2
   },
   brandSubtitle: {
-    fontSize: '0.8125rem',
-    color: 'rgba(201, 184, 150, 0.9)',
-    letterSpacing: '0.12em',
+    fontFamily: "var(--font-serif), Georgia, 'Times New Roman', serif",
+    fontSize: '0.75rem',
+    color: 'rgba(201, 184, 150, 0.95)',
+    letterSpacing: '0.2em',
     textTransform: 'uppercase',
     margin: 0,
     fontWeight: 500,

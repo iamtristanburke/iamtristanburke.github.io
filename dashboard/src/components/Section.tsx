@@ -17,16 +17,14 @@ export default function Section({ title, children }: SectionProps) {
 const styles: { [key: string]: React.CSSProperties } = {
   section: {
     background: '#fbf9f4',
-    border: '3px solid #a89b84',
+    border: '1px solid rgba(168, 155, 132, 0.4)',
     padding: '3rem',
     marginBottom: '2.5rem',
-    boxShadow: '0 6px 20px rgba(44, 44, 44, 0.12)',
-    position: 'relative',
-    borderLeft: '10px solid transparent',
-    borderImage: 'linear-gradient(to bottom, #6b2737, #a98a4f, #2d4a2b, #9d5b3f, #1a2f4a) 1'
+    boxShadow: '0 4px 16px rgba(44, 44, 44, 0.08)',
+    position: 'relative'
   },
   sectionHeader: {
-    fontFamily: "'Libre Baskerville', serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '2.2rem',
     fontWeight: 700,
     color: '#0f1f35',

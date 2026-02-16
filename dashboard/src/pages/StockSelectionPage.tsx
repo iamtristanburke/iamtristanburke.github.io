@@ -1,12 +1,24 @@
 import { useState } from 'react';
-import { Config, Stock, InvestmentStyle } from '../types/colt-road';
+import { Config, Stock } from '../types/colt-road';
 import { ALL_STOCKS } from '../utils/stockDatabase';
 import { formatMarketCap } from '../utils/formatters';
+import { filterStocksWithLLM, isLLMApiConfigured } from '../services/llmStockFilter';
 import ProgressBar from '../components/ProgressBar';
 import Section from '../components/Section';
 import ButtonGroup from '../components/ButtonGroup';
+import StockDetailPanel from '../components/StockDetailPanel';
 
-const THEME_OPTIONS = ['Technology', 'Healthcare', 'Dividend / Income', 'ESG', 'Growth', 'Value', 'Defensive', 'Cyclical', 'International'];
+/** Illustrative S&P 500 ideas from Colt Road (thematic examples, not recommendations). */
+const ILLUSTRATIVE_IDEAS: { ticker: string; name: string; theme: string }[] = [
+  { ticker: 'MSFT', name: 'Microsoft', theme: 'Quality growth, durable earnings visibility' },
+  { ticker: 'JNJ', name: 'Johnson & Johnson', theme: 'Dividend grower, healthcare quality' },
+  { ticker: 'XOM', name: 'ExxonMobil', theme: 'Energy, dividend and balance-sheet strength' },
+  { ticker: 'CAT', name: 'Caterpillar', theme: 'Cyclical with pricing power' },
+  { ticker: 'UNH', name: 'UnitedHealth Group', theme: 'Healthcare, earnings visibility' },
+  { ticker: 'PG', name: 'Procter & Gamble', theme: 'Defensive dividend, pricing power' },
+  { ticker: 'ABBV', name: 'AbbVie', theme: 'Dividend resilience, healthcare' },
+  { ticker: 'CVX', name: 'Chevron', theme: 'Energy, traditional and transition' }
+];
 
 interface StockSelectionPageProps {
   config: Config;
@@ -14,27 +26,45 @@ interface StockSelectionPageProps {
   toggleStock: (ticker: string) => void;
   onNext: () => void;
   onBack: () => void;
+  onStepClick?: (step: number) => void;
 }
 
-export default function StockSelectionPage({ config, updateConfig, toggleStock, onNext, onBack }: StockSelectionPageProps) {
-  const [selectedIndex, setSelectedIndex] = useState<'SP500' | 'RUSSELL2000'>('SP500');
+export default function StockSelectionPage({ config, updateConfig: _updateConfig, toggleStock, onNext, onBack, onStepClick }: StockSelectionPageProps) {
   const [sortBy, setSortBy] = useState<keyof Stock>('marketCap');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [llmQuery, setLlmQuery] = useState('');
+  const [llmFilteredTickers, setLlmFilteredTickers] = useState<string[] | null>(null);
+  const [llmLoading, setLlmLoading] = useState(false);
+  const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
 
-  const investmentStyle = config.investmentStyle ?? 'balanced';
-  const themes = config.themes ?? [];
-  const buySignals = config.buySignals ?? { technical: true, fundamental: true, ai: false };
-
-  const toggleTheme = (theme: string) => {
-    const next = themes.includes(theme) ? themes.filter(t => t !== theme) : [...themes, theme];
-    updateConfig('themes', next);
+  const openStockDetail = (ticker: string) => {
+    const stock = ALL_STOCKS.find((s) => s.ticker === ticker);
+    if (stock) setSelectedStock(stock);
   };
 
-  const setBuySignal = (key: keyof typeof buySignals, value: boolean) => {
-    updateConfig('buySignals', { ...buySignals, [key]: value });
+  const runLlmFilter = async () => {
+    if (!llmQuery.trim()) {
+      setLlmFilteredTickers(null);
+      return;
+    }
+    setLlmLoading(true);
+    try {
+      const tickers = await filterStocksWithLLM(llmQuery.trim(), ALL_STOCKS);
+      setLlmFilteredTickers(tickers);
+    } finally {
+      setLlmLoading(false);
+    }
   };
-  
-  const filteredStocks = ALL_STOCKS.filter(stock => stock.index === selectedIndex);
+
+  const clearLlmFilter = () => {
+    setLlmQuery('');
+    setLlmFilteredTickers(null);
+  };
+
+  const filteredStocks =
+    llmFilteredTickers === null
+      ? ALL_STOCKS
+      : ALL_STOCKS.filter((s) => llmFilteredTickers.includes(s.ticker));
   
   const sortedStocks = [...filteredStocks].sort((a, b) => {
     let aVal: any = a[sortBy];
@@ -79,85 +109,71 @@ export default function StockSelectionPage({ config, updateConfig, toggleStock, 
   
   return (
     <div style={styles.container} className="page-container">
-      <ProgressBar current={3} />
+      {selectedStock && (
+        <StockDetailPanel stock={selectedStock} onClose={() => setSelectedStock(null)} />
+      )}
+      <ProgressBar current={3} onStepClick={onStepClick} />
       <Section title="2. What stocks should you be buying?">
-        <p style={styles.sectionDesc}>
-          Define your investment style, themes you care about, and what signals (technical, fundamental, or AI-based) should drive buy decisions. Then choose the stocks in your universe.
+        <h3 style={styles.subsectionTitle}>Colt Road&apos;s Perspective</h3>
+        <p style={styles.perspectiveParagraph}>
+          Colt Road is monitoring themes around rates and duration, quality in technology and health care, energy transition and traditional energy, and dividend resilience in a higher-for-longer environment. Right now we find selective quality growth (earnings visibility and balance-sheet strength), dividend payers with room to grow, and certain cyclicals with pricing power more interesting than broad momentum or speculative growth. Use the search below to narrow the universe to what fits your view.
         </p>
-
-        <h3 style={styles.subsectionTitle}>Investment style</h3>
-        <div style={styles.optionRow}>
-          {(['growth', 'income', 'balanced'] as InvestmentStyle[]).map(style => (
-            <label key={style} style={styles.radioLabel}>
-              <input
-                type="radio"
-                name="investmentStyle"
-                checked={investmentStyle === style}
-                onChange={() => updateConfig('investmentStyle', style)}
-                style={styles.radio}
-              />
-              <span style={{ textTransform: 'capitalize' }}>{style}</span>
-            </label>
+        <p style={styles.illustrativeLabel}>Illustrative ideas from Colt Road (S&P 500)</p>
+        <ul style={styles.illustrativeList}>
+          {ILLUSTRATIVE_IDEAS.map(({ ticker, name, theme }) => (
+            <li key={ticker} style={styles.illustrativeItem}>
+              {name} (
+              <button
+                type="button"
+                onClick={() => openStockDetail(ticker)}
+                style={styles.tickerLink}
+              >
+                {ticker}
+              </button>
+              ): {theme}
+            </li>
           ))}
-        </div>
-
-        <h3 style={styles.subsectionTitle}>Themes / industries</h3>
-        <p style={styles.hint}>Select any themes or industries you're interested in. AI can use these to focus recommendations.</p>
-        <div style={styles.themeGrid}>
-          {THEME_OPTIONS.map(theme => (
-            <label
-              key={theme}
-              style={{
-                ...styles.themeChip,
-                ...(themes.includes(theme) ? styles.themeChipSelected : {})
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={themes.includes(theme)}
-                onChange={() => toggleTheme(theme)}
-                style={styles.checkbox}
-              />
-              {theme}
-            </label>
-          ))}
-        </div>
-
-        <h3 style={styles.subsectionTitle}>Buy signals</h3>
-        <p style={styles.hint}>What should drive a &quot;buy&quot; decision? Traditional technical/fundamental and/or AI-based signals.</p>
-        <div style={styles.optionRow}>
-          <label style={styles.checkLabel}>
-            <input type="checkbox" checked={buySignals.technical} onChange={(e) => setBuySignal('technical', e.target.checked)} style={styles.checkbox} />
-            Technical analysis
-          </label>
-          <label style={styles.checkLabel}>
-            <input type="checkbox" checked={buySignals.fundamental} onChange={(e) => setBuySignal('fundamental', e.target.checked)} style={styles.checkbox} />
-            Fundamental data
-          </label>
-          <label style={styles.checkLabel}>
-            <input type="checkbox" checked={buySignals.ai} onChange={(e) => setBuySignal('ai', e.target.checked)} style={styles.checkbox} />
-            AI / non-traditional signals
-          </label>
-        </div>
+        </ul>
 
         <h3 style={styles.subsectionTitle}>Your stock universe</h3>
-        <p style={styles.sectionDesc}>Select stocks for your equity allocation. Key fundamental metrics are shown below.</p>
-        
-        <div style={styles.filterBar} className="filter-bar">
-          <div style={styles.filterGroup}>
-            <label style={styles.filterLabel}>Index:</label>
-            <select value={selectedIndex} onChange={(e) => setSelectedIndex(e.target.value as 'SP500' | 'RUSSELL2000')} style={styles.filterSelect}>
-              <option value="SP500">S&P 500</option>
-              <option value="RUSSELL2000">Russell 2000</option>
-            </select>
-          </div>
-          
-          <div style={styles.filterGroup}>
-            <button style={styles.btnSmall} onClick={selectAll}>Select All</button>
-            <button style={styles.btnSmall} onClick={deselectAll}>Deselect All</button>
-          </div>
+        <p style={styles.sectionDesc}>Select stocks for your equity allocation. Describe the kind of stocks you want below; Colt Road will filter the list to match.</p>
+
+        <div style={styles.llmSearchBar}>
+          <input
+            type="text"
+            value={llmQuery}
+            onChange={(e) => setLlmQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && runLlmFilter()}
+            placeholder="e.g. energy stocks with good growth this year"
+            style={styles.llmSearchInput}
+            disabled={llmLoading}
+          />
+          <button
+            type="button"
+            onClick={runLlmFilter}
+            disabled={llmLoading}
+            style={{ ...styles.llmSearchBtn, ...(llmLoading ? styles.llmSearchBtnDisabled : {}) }}
+          >
+            {llmLoading ? 'Searching…' : 'Filter stocks'}
+          </button>
+          {(llmFilteredTickers !== null || llmQuery.trim()) && (
+            <button type="button" onClick={clearLlmFilter} style={styles.llmClearBtn}>
+              Show all
+            </button>
+          )}
         </div>
-        
+        {llmFilteredTickers !== null && (
+          <p style={styles.llmResultHint}>
+            Showing {llmFilteredTickers.length} stocks matching your description.
+            {!isLLMApiConfigured() && ' (Keyword match. Set VITE_LLM_FILTER_API_URL for full AI filtering.)'}
+          </p>
+        )}
+
+        <div style={styles.tableActions}>
+          <button style={styles.btnSmall} onClick={selectAll}>Select all visible</button>
+          <button style={styles.btnSmall} onClick={deselectAll}>Deselect all visible</button>
+        </div>
+
         <div style={styles.tableWrapper} className="table-wrapper">
           <table style={styles.table}>
             <thead>
@@ -188,7 +204,15 @@ export default function StockSelectionPage({ config, updateConfig, toggleStock, 
                       style={styles.checkbox}
                     />
                   </td>
-                  <td style={{...styles.td, fontWeight: '700'}}>{stock.ticker}</td>
+                  <td style={styles.td}>
+                  <button
+                    type="button"
+                    onClick={() => openStockDetail(stock.ticker)}
+                    style={styles.tickerLink}
+                  >
+                    {stock.ticker}
+                  </button>
+                </td>
                   <td style={styles.td}>{stock.name}</td>
                   <td style={styles.td}>{formatMarketCap(stock.marketCap)}</td>
                   <td style={styles.td}>{stock.pe.toFixed(1)}</td>
@@ -220,7 +244,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     lineHeight: 1.5
   },
   subsectionTitle: {
-    fontFamily: "'Libre Baskerville', serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '1.35rem',
     color: '#0f1f35',
     marginTop: '2rem',
@@ -228,91 +252,105 @@ const styles: { [key: string]: React.CSSProperties } = {
     paddingBottom: '0.5rem',
     borderBottom: '2px solid #d9d2c1'
   },
-  hint: {
-    fontSize: '0.9rem',
-    color: '#6d6658',
-    marginBottom: '1rem'
+  perspectiveParagraph: {
+    margin: '0 0 1.5rem 0',
+    fontSize: '0.95rem',
+    color: '#2c2c2c',
+    lineHeight: 1.65,
+    maxWidth: '720px'
   },
-  optionRow: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '1.5rem',
-    alignItems: 'center',
-    marginBottom: '1.5rem'
-  },
-  radioLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    cursor: 'pointer',
+  illustrativeLabel: {
+    margin: '0 0 0.5rem 0',
+    fontSize: '0.85rem',
     fontWeight: 600,
-    color: '#2c2c2c'
+    color: '#6d6658',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em'
   },
-  radio: {
-    width: '18px',
-    height: '18px',
-    accentColor: '#2d4a2b',
+  illustrativeList: {
+    margin: '0 0 1.5rem 0',
+    paddingLeft: '1.25rem',
+    maxWidth: '720px'
+  },
+  illustrativeItem: {
+    fontSize: '0.95rem',
+    color: '#2c2c2c',
+    lineHeight: 1.6,
+    marginBottom: '0.35rem'
+  },
+  illustrativeTicker: {
+    color: '#0f1f35',
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+  },
+  tickerLink: {
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    font: 'inherit',
+    fontWeight: 700,
+    color: '#2d4a2b',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    textDecorationColor: 'rgba(45, 74, 43, 0.5)'
+  },
+  llmSearchBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    flexWrap: 'wrap',
+    marginTop: '0.5rem',
+    marginBottom: '0.5rem'
+  },
+  llmSearchInput: {
+    flex: '1 1 320px',
+    minWidth: 0,
+    padding: '0.75rem 1rem',
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '1rem',
+    border: '2px solid #d9d2c1',
+    background: '#fff',
+    color: '#0f1f35'
+  },
+  llmSearchBtn: {
+    padding: '0.75rem 1.25rem',
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '0.95rem',
+    fontWeight: 600,
+    background: '#2d4a2b',
+    color: 'white',
+    border: 'none',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap'
+  },
+  llmSearchBtnDisabled: {
+    opacity: 0.7,
+    cursor: 'not-allowed'
+  },
+  llmClearBtn: {
+    padding: '0.75rem 1rem',
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '0.9rem',
+    background: 'transparent',
+    color: '#6d6658',
+    border: '1px solid #d9d2c1',
     cursor: 'pointer'
   },
-  checkLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    cursor: 'pointer',
-    fontWeight: 600,
-    color: '#2c2c2c'
-  },
-  themeGrid: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '0.75rem',
-    marginBottom: '1.5rem'
-  },
-  themeChip: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.5rem 1rem',
-    background: '#f5f2e9',
-    border: '2px solid #d9d2c1',
-    cursor: 'pointer',
+  llmResultHint: {
+    margin: '0 0 1rem 0',
     fontSize: '0.9rem',
-    fontWeight: 500
+    color: '#6d6658'
   },
-  themeChipSelected: {
-    borderColor: '#2d4a2b',
-    background: 'rgba(45, 74, 43, 0.1)'
-  },
-  filterBar: {
+  tableActions: {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '1.5rem',
-    background: '#f5f2e9',
-    border: '2px solid #d9d2c1',
-    marginTop: '1rem'
-  },
-  filterGroup: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem'
-  },
-  filterLabel: {
-    fontWeight: 600,
-    color: '#2c2c2c'
-  },
-  filterSelect: {
-    background: 'white',
-    border: '2px solid #d9d2c1',
-    padding: '0.5rem 1rem',
-    fontFamily: "'Montserrat', sans-serif",
-    fontSize: '0.9rem'
+    gap: '0.75rem',
+    marginTop: '0.5rem',
+    marginBottom: '0.5rem'
   },
   btnSmall: {
     background: 'white',
     border: '2px solid #2d4a2b',
     padding: '0.5rem 1rem',
-    fontFamily: "'Montserrat', sans-serif",
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontWeight: 600,
     fontSize: '0.85rem',
     cursor: 'pointer',

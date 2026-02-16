@@ -3,12 +3,14 @@ import { ReactNode } from 'react';
 interface FormGroupProps {
   label: string;
   children: ReactNode;
+  /** Reserve min height for label so inputs align in multi-column grids */
+  reserveLabelSpace?: boolean;
 }
 
-export default function FormGroup({ label, children }: FormGroupProps) {
+export default function FormGroup({ label, children, reserveLabelSpace }: FormGroupProps) {
   return (
     <div style={styles.formGroup}>
-      <label style={styles.label}>{label}</label>
+      <label style={{ ...styles.label, ...(reserveLabelSpace ? styles.labelReserved : {}) }}>{label}</label>
       {children}
     </div>
   );
@@ -23,7 +25,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '0.875rem',
     fontWeight: 600,
     color: '#2c2c2c',
-    marginBottom: '0.6rem'
+    marginBottom: '0.6rem',
+    lineHeight: 1.35
+  },
+  labelReserved: {
+    minHeight: '2.5em'
   }
 };
 

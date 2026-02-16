@@ -27,7 +27,10 @@ function App() {
       riskAppetite: 'moderate',
       maxAcceptableLossPct: 15,
       ifPortfolioDropped20: 'hold',
-      avoidShortTermLosses: 'somewhat'
+      avoidShortTermLosses: 'somewhat',
+      pctOfAssetsInLiquidPortfolio: 50,
+      realEstateValue: 0,
+      alternativeInvestmentsValue: 0
     },
     investmentStyle: 'balanced',
     themes: [],
@@ -70,7 +73,8 @@ function App() {
           config={config} 
           updateConfig={updateConfig} 
           onNext={() => setCurrentPage(3)} 
-          onBack={() => setCurrentPage(1)} 
+          onBack={() => setCurrentPage(1)}
+          onStepClick={setCurrentPage}
         />
       )}
       {currentPage === 3 && (
@@ -79,7 +83,8 @@ function App() {
           updateConfig={updateConfig}
           toggleStock={toggleStock} 
           onNext={() => setCurrentPage(4)} 
-          onBack={() => setCurrentPage(2)} 
+          onBack={() => setCurrentPage(2)}
+          onStepClick={setCurrentPage}
         />
       )}
       {currentPage === 4 && (
@@ -87,7 +92,8 @@ function App() {
           config={config} 
           updateConfig={updateConfig} 
           onRun={runBacktest} 
-          onBack={() => setCurrentPage(3)} 
+          onBack={() => setCurrentPage(3)}
+          onStepClick={setCurrentPage}
         />
       )}
       {currentPage === 5 && results && (
@@ -97,7 +103,8 @@ function App() {
           onRestart={() => { 
             setCurrentPage(1); 
             setResults(null); 
-          }} 
+          }}
+          onStepClick={setCurrentPage}
         />
       )}
     </div>

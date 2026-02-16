@@ -13,24 +13,56 @@ export interface StrategyParams {
   [key: string]: any;
 }
 
-/** Q1: Market factors that inform debt/equity allocation (AI rebalances based on these) */
+/** Q1: Market factors that inform debt/equity allocation (Colt Road rebalances based on these) */
 export interface MarketFactors {
   realBondYieldNote?: string;
   equityValuationNote?: string;
   buffettRatioNote?: string;
 }
 
-/** Q1: Personal inputs for debt/equity split (AI uses these to suggest allocation) */
+/** Q1: Current macro snapshot — cited stats and ratios for stocks vs bonds (regularly updated) */
+export interface MarketMacroSnapshot {
+  asOf: string;
+  /** Colt Road daily commentary on macro and credit vs. equity (updated daily) */
+  dailyCommentary: string;
+  tenYearTreasuryYieldPct: number;
+  twoYearTreasuryYieldPct: number;
+  sp500ForwardPE: number;
+  equityRiskPremiumEstimatePct: number;
+  fedFundsRatePct: number;
+  inflationCpiYoYPct: number;
+  investmentGradeCorpSpreadBps: number;
+  dividendYieldSp500Pct: number;
+  /** S&P 500 earnings yield (100 / forward P/E); Fed model input */
+  earningsYieldSp500Pct: number;
+  /** Fed model: earnings yield minus 10Y Treasury; positive = stocks favored vs bonds */
+  fedModelSpreadPct: number;
+  /** Buffett indicator: market cap / GDP × 100; ~100 = fair, &gt;100 = expensive */
+  buffettIndicatorPct: number;
+  /** Yield curve: 10Y minus 2Y (bps or %); negative = inverted */
+  yieldCurveSpreadPct: number;
+  /** Real 10Y yield: 10Y Treasury minus CPI inflation */
+  realTenYearYieldPct: number;
+  /** Colt Road's daily baseline equity % (stock/bond split from macro alone); personal factors amend this */
+  aiBaselineEquityPct: number;
+  /** Short rationale for Colt Road's baseline split (daily perspective) */
+  aiBaselineRationale: string;
+}
+
+/** Q1: Personal inputs for asset allocation (Colt Road uses these to suggest stocks/bonds mix) */
 export interface PersonalFactors {
   timeHorizonYears: number;
   age: number;
   riskAppetite: 'conservative' | 'moderate' | 'aggressive';
-  /** Largest portfolio drop in a bad year you could tolerate (%) */
   maxAcceptableLossPct: number;
-  /** If your portfolio dropped 20% in a year, you would... */
   ifPortfolioDropped20: 'sell' | 'reduce' | 'hold' | 'add';
-  /** How important is avoiding short-term losses? */
   avoidShortTermLosses: 'very' | 'somewhat' | 'notVery';
+  /** % of total assets in this liquid portfolio (25 | 50 | 75 | 100 band). Higher % → more conservative. */
+  pctOfAssetsInLiquidPortfolio: 25 | 50 | 75 | 100;
+  /** Approximate value of real estate holdings (primary residence, investment property, etc.) */
+  realEstateValue: number;
+  /** Approximate value of alternative investments (private equity, hedge funds, commodities, etc.) */
+  alternativeInvestmentsValue: number;
 }
 
 /** Q2: Investment style and themes */
@@ -58,7 +90,7 @@ export interface Config {
     contrarian?: StrategyParams;
     technical?: StrategyParams;
   };
-  // Q1: Debt/Equity – personal & context (market factors are AI-driven)
+  // Q1: Debt/Equity – personal & context (market factors are Colt Road–driven)
   personalFactors?: PersonalFactors;
   // Q2: What stocks – style, themes, buy signals
   investmentStyle?: InvestmentStyle;
