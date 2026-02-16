@@ -36,16 +36,18 @@ const styles: { [key: string]: React.CSSProperties } = {
   coltContainer: {
     width: '72px',
     height: '72px',
-    borderRadius: '12px',
-    overflow: 'hidden',
     flexShrink: 0,
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
-    border: '1px solid rgba(169, 138, 79, 0.2)'
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   coltImage: {
-    width: '100%',
-    height: '100%',
+    maxWidth: '100%',
+    maxHeight: '100%',
+    width: 'auto',
+    height: 'auto',
     objectFit: 'contain',
+    objectPosition: 'center',
     display: 'block',
     filter: 'invert(1)'
   },
