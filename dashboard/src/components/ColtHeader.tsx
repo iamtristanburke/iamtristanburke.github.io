@@ -1,19 +1,35 @@
+import { useState } from 'react';
+import ColtRoadConfigModal from './ColtRoadConfigModal';
+
 /** Colt Road horse icon next to "Colt Road Management". Cache-bust so updates to the image are visible. */
 const COLT_ICON = '/colt-icon.png?v=2';
 
 export default function ColtHeader() {
+  const [configOpen, setConfigOpen] = useState(false);
+
   return (
-    <header style={styles.header} className="colt-header">
-      <div style={styles.headerContent} className="colt-header-content">
-        <div style={styles.coltContainer}>
-          <img src={COLT_ICON} alt="Colt Road" style={styles.coltImage} />
+    <>
+      <header style={styles.header} className="colt-header">
+        <div style={styles.headerContent} className="colt-header-content">
+          <div style={styles.coltContainer}>
+            <img src={COLT_ICON} alt="Colt Road" style={styles.coltImage} />
+          </div>
+          <div style={styles.brandBlock}>
+            <h1 style={styles.brandName} className="colt-brand-name">Colt Road Management</h1>
+            <p style={styles.brandSubtitle}>Nimble Engine to Test Your Ideas</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setConfigOpen(true)}
+            style={styles.configureBtn}
+            aria-label="Configure Colt Road"
+          >
+            Configure
+          </button>
         </div>
-        <div style={styles.brandBlock}>
-          <h1 style={styles.brandName} className="colt-brand-name">Colt Road Management</h1>
-          <p style={styles.brandSubtitle}>Nimble Engine to Test Your Ideas</p>
-        </div>
-      </div>
-    </header>
+      </header>
+      {configOpen && <ColtRoadConfigModal onClose={() => setConfigOpen(false)} />}
+    </>
   );
 }
 
@@ -33,6 +49,18 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     alignItems: 'center',
     gap: '0.35rem'
+  },
+  configureBtn: {
+    marginLeft: 'auto',
+    padding: '0.4rem 0.9rem',
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '0.875rem',
+    fontWeight: 600,
+    color: '#f8f6f1',
+    background: 'rgba(169, 138, 79, 0.25)',
+    border: '1px solid rgba(169, 138, 79, 0.5)',
+    borderRadius: '4px',
+    cursor: 'pointer'
   },
   coltContainer: {
     width: '82px',

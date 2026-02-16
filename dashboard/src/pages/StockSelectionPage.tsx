@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Config, Stock } from '../types/colt-road';
 import { ALL_STOCKS } from '../utils/stockDatabase';
 import { formatMarketCap } from '../utils/formatters';
@@ -7,18 +7,9 @@ import ProgressBar from '../components/ProgressBar';
 import Section from '../components/Section';
 import ButtonGroup from '../components/ButtonGroup';
 import StockDetailPanel from '../components/StockDetailPanel';
+import { COLT_ROAD_BEST_IDEAS, COLT_ROAD_BEST_IDEAS_TICKERS } from '../data/coltRoadBestIdeas';
 
-/** Illustrative S&P 500 ideas from Colt Road (thematic examples, not recommendations). */
-const ILLUSTRATIVE_IDEAS: { ticker: string; name: string; theme: string }[] = [
-  { ticker: 'MSFT', name: 'Microsoft', theme: 'Quality growth, durable earnings visibility' },
-  { ticker: 'JNJ', name: 'Johnson & Johnson', theme: 'Dividend grower, healthcare quality' },
-  { ticker: 'XOM', name: 'ExxonMobil', theme: 'Energy, dividend and balance-sheet strength' },
-  { ticker: 'CAT', name: 'Caterpillar', theme: 'Cyclical with pricing power' },
-  { ticker: 'UNH', name: 'UnitedHealth Group', theme: 'Healthcare, earnings visibility' },
-  { ticker: 'PG', name: 'Procter & Gamble', theme: 'Defensive dividend, pricing power' },
-  { ticker: 'ABBV', name: 'AbbVie', theme: 'Dividend resilience, healthcare' },
-  { ticker: 'CVX', name: 'Chevron', theme: 'Energy, traditional and transition' }
-];
+const COLT_ICON = '/colt-icon.png?v=2';
 
 interface StockSelectionPageProps {
   config: Config;
@@ -27,15 +18,23 @@ interface StockSelectionPageProps {
   onNext: () => void;
   onBack: () => void;
   onStepClick?: (step: number) => void;
+  onOpenResearch?: () => void;
 }
 
-export default function StockSelectionPage({ config, updateConfig: _updateConfig, toggleStock, onNext, onBack, onStepClick }: StockSelectionPageProps) {
+export default function StockSelectionPage({ config, updateConfig: _updateConfig, toggleStock, onNext, onBack, onStepClick, onOpenResearch }: StockSelectionPageProps) {
   const [sortBy, setSortBy] = useState<keyof Stock>('marketCap');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [llmQuery, setLlmQuery] = useState('');
   const [llmFilteredTickers, setLlmFilteredTickers] = useState<string[] | null>(null);
   const [llmLoading, setLlmLoading] = useState(false);
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
+  const [, setConfigVersion] = useState(0);
+
+  useEffect(() => {
+    const onConfigSaved = () => setConfigVersion((v) => v + 1);
+    window.addEventListener('colt-road-api-config-saved', onConfigSaved);
+    return () => window.removeEventListener('colt-road-api-config-saved', onConfigSaved);
+  }, []);
 
   const openStockDetail = (ticker: string) => {
     const stock = ALL_STOCKS.find((s) => s.ticker === ticker);
@@ -114,14 +113,24 @@ export default function StockSelectionPage({ config, updateConfig: _updateConfig
       )}
       <ProgressBar current={3} onStepClick={onStepClick} />
       <Section title="2. What stocks should you be buying?">
-        <h3 style={styles.subsectionTitle}>Colt Road&apos;s Perspective</h3>
+        <div style={styles.perspectiveHeadingRow}>
+          <div style={styles.coltIconWrap}>
+            <img src={COLT_ICON} alt="" style={styles.coltIconWhite} aria-hidden />
+          </div>
+          <h3 style={styles.subsectionTitle}>Colt Road&apos;s Perspective</h3>
+        </div>
         <p style={styles.perspectiveParagraph}>
-          Colt Road is monitoring themes around rates and duration, quality in technology and health care, energy transition and traditional energy, and dividend resilience in a higher-for-longer environment. Right now we find selective quality growth (earnings visibility and balance-sheet strength), dividend payers with room to grow, and certain cyclicals with pricing power more interesting than broad momentum or speculative growth. Use the search below to narrow the universe to what fits your view.
+          We invest as the world&apos;s most sophisticated allocators: we buy businesses we want to own for at least five years, preferably a decade or more. We care about earnings visibility, balance-sheet strength, and durable competitive advantages—not next quarter&apos;s print. Quality growth, dividend growers with room to run, and cyclicals with pricing power beat momentum and speculation over time. Use the search below to narrow the universe to what fits your view.
         </p>
-        <p style={styles.illustrativeLabel}>Illustrative ideas from Colt Road (S&P 500)</p>
-        <ul style={styles.illustrativeList}>
-          {ILLUSTRATIVE_IDEAS.map(({ ticker, name, theme }) => (
-            <li key={ticker} style={styles.illustrativeItem}>
+        {onOpenResearch && (
+          <button type="button" onClick={onOpenResearch} style={styles.researchBtn}>
+            Colt Road&apos;s Research
+          </button>
+        )}
+        <p style={styles.bestIdeasLabel}>Colt Road&apos;s 15 Best Ideas</p>
+        <ul style={styles.bestIdeasList}>
+          {COLT_ROAD_BEST_IDEAS.map(({ ticker, name, theme }) => (
+            <li key={ticker} style={styles.bestIdeasItem}>
               {name} (
               <button
                 type="button"
@@ -135,7 +144,7 @@ export default function StockSelectionPage({ config, updateConfig: _updateConfig
           ))}
         </ul>
 
-        <h3 style={styles.subsectionTitle}>Your stock universe</h3>
+        <h3 style={styles.subsectionTitleStandalone}>Your stock universe</h3>
         <p style={styles.sectionDesc}>Select stocks for your equity allocation. Describe the kind of stocks you want below; Colt Road will filter the list to match.</p>
 
         <div style={styles.llmSearchBar}>
@@ -165,7 +174,7 @@ export default function StockSelectionPage({ config, updateConfig: _updateConfig
         {llmFilteredTickers !== null && (
           <p style={styles.llmResultHint}>
             Showing {llmFilteredTickers.length} stocks matching your description.
-            {!isLLMApiConfigured() && ' (Keyword match. Set VITE_LLM_FILTER_API_URL for full AI filtering.)'}
+            {!isLLMApiConfigured() && ' (Keyword match. Use Configure in the header for full AI filtering.)'}
           </p>
         )}
 
@@ -243,7 +252,43 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#6d6658',
     lineHeight: 1.5
   },
+  perspectiveHeadingRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.35rem',
+    marginTop: '2rem',
+    marginBottom: '0.75rem',
+    paddingBottom: '0.5rem',
+    borderBottom: '2px solid #d9d2c1'
+  },
+  coltIconWrap: {
+    width: '40px',
+    height: '40px',
+    flexShrink: 0,
+    background: '#0f1f35',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '6px',
+    boxSizing: 'border-box',
+    border: 'none',
+    outline: 'none'
+  },
+  coltIconWhite: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+    filter: 'invert(1)',
+    mixBlendMode: 'lighten'
+  },
   subsectionTitle: {
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '1.35rem',
+    color: '#0f1f35',
+    margin: 0,
+    paddingBottom: 0
+  },
+  subsectionTitleStandalone: {
     fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '1.35rem',
     color: '#0f1f35',
@@ -259,7 +304,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     lineHeight: 1.65,
     maxWidth: '720px'
   },
-  illustrativeLabel: {
+  researchBtn: {
+    display: 'block',
+    width: '100%',
+    marginTop: '0.5rem',
+    marginBottom: '1.5rem',
+    padding: '0.5rem 1.25rem',
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '0.95rem',
+    fontWeight: 600,
+    color: '#0f1f35',
+    background: '#e8eef4',
+    border: '2px solid #0f1f35',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  },
+  bestIdeasLabel: {
     margin: '0 0 0.5rem 0',
     fontSize: '0.85rem',
     fontWeight: 600,
@@ -267,18 +327,18 @@ const styles: { [key: string]: React.CSSProperties } = {
     textTransform: 'uppercase',
     letterSpacing: '0.04em'
   },
-  illustrativeList: {
+  bestIdeasList: {
     margin: '0 0 1.5rem 0',
     paddingLeft: '1.25rem',
     maxWidth: '720px'
   },
-  illustrativeItem: {
+  bestIdeasItem: {
     fontSize: '0.95rem',
     color: '#2c2c2c',
     lineHeight: 1.6,
     marginBottom: '0.35rem'
   },
-  illustrativeTicker: {
+  bestIdeasTicker: {
     color: '#0f1f35',
     fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
   },

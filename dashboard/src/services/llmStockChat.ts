@@ -1,6 +1,5 @@
 import type { Stock } from '../types/colt-road';
-
-const LLM_CHAT_API_URL = import.meta.env.VITE_LLM_CHAT_API_URL as string | undefined;
+import { getChatApiUrl } from '../config/coltRoadApi';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -12,16 +11,17 @@ export interface ChatMessage {
  * Backend contract:
  *   POST body: { stock: { ticker, name, sector, pe, marketCap, divYield }, messages: ChatMessage[], newMessage: string }
  *   Response:  { reply: string }
- * Set VITE_LLM_CHAT_API_URL in .env to enable.
+ * Configure via header "Configure" or set VITE_LLM_CHAT_API_URL in .env.
  */
 export async function sendStockChatMessage(
   stock: Stock,
   messages: ChatMessage[],
   newMessage: string
 ): Promise<string> {
-  if (LLM_CHAT_API_URL) {
+  const apiUrl = getChatApiUrl();
+  if (apiUrl) {
     try {
-      const res = await fetch(LLM_CHAT_API_URL, {
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -42,12 +42,12 @@ export async function sendStockChatMessage(
       return typeof data.reply === 'string' ? data.reply : 'No reply received.';
     } catch (err) {
       console.warn('LLM chat API failed:', err);
-      return "Colt Road isn't connected right now. Set VITE_LLM_CHAT_API_URL to enable questions about this stock.";
+      return "Colt Road isn't connected right now. Use Configure in the header to set the Chat API URL.";
     }
   }
-  return "Colt Road chat isn't configured. Set VITE_LLM_CHAT_API_URL in your environment to ask questions about this stock.";
+  return "Colt Road chat isn't configured. Click Configure in the header to add your Chat API URL.";
 }
 
 export function isStockChatConfigured(): boolean {
-  return Boolean(LLM_CHAT_API_URL);
+  return Boolean(getChatApiUrl());
 }

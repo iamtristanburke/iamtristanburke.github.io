@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { Config, BacktestResults } from './types/colt-road';
 import ColtHeader from './components/ColtHeader';
+import ColtRoadResearchModal from './components/ColtRoadResearchModal';
 import LandingPage from './pages/LandingPage';
 import ProfilePage from './pages/ProfilePage';
 import StockSelectionPage from './pages/StockSelectionPage';
 import StrategyPage from './pages/StrategyPage';
 import ResultsPage from './pages/ResultsPage';
 import { generateBacktest } from './utils/backtest';
+import { COLT_ROAD_BEST_IDEAS_TICKERS } from './data/coltRoadBestIdeas';
 
 function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [config, setConfig] = useState<Config>({
     portfolioValue: 100000,
     targetEquityPct: 70,
-    selectedStocks: [],
+    selectedStocks: [...COLT_ROAD_BEST_IDEAS_TICKERS],
     rebalanceFreq: 'quarterly',
     commission: 0,
     slippage: 0.1,
@@ -38,7 +40,8 @@ function App() {
     balanceSignals: { technical: true, ai: false, other: false }
   });
   const [results, setResults] = useState<BacktestResults | null>(null);
-  
+  const [researchOpen, setResearchOpen] = useState(false);
+
   const updateConfig = (key: keyof Config, value: any) => {
     setConfig(prev => ({ ...prev, [key]: value }));
   };
@@ -66,7 +69,8 @@ function App() {
   return (
     <div style={styles.app}>
       <ColtHeader />
-      
+      <ColtRoadResearchModal open={researchOpen} onClose={() => setResearchOpen(false)} />
+
       {currentPage === 1 && <LandingPage onStart={() => setCurrentPage(2)} />}
       {currentPage === 2 && (
         <ProfilePage 
@@ -75,6 +79,7 @@ function App() {
           onNext={() => setCurrentPage(3)} 
           onBack={() => setCurrentPage(1)}
           onStepClick={setCurrentPage}
+          onOpenResearch={() => setResearchOpen(true)}
         />
       )}
       {currentPage === 3 && (
@@ -85,6 +90,7 @@ function App() {
           onNext={() => setCurrentPage(4)} 
           onBack={() => setCurrentPage(2)}
           onStepClick={setCurrentPage}
+          onOpenResearch={() => setResearchOpen(true)}
         />
       )}
       {currentPage === 4 && (

@@ -1,7 +1,8 @@
 /**
- * Monthly backtest: how Colt Road's recommended stock/bond split would have changed
- * based on a simple mathematical framework (10Y yield + valuation proxy).
- * Data: Feb 2020 – Feb 2025 (~5 years). Replace with FRED/API for production.
+ * Quarterly view of Colt Road's recommended equities/bond split over time.
+ * Aligned with Colt Road's Research: 50/50 neutral stance when 10Y is near current levels;
+ * framework shifts toward more bonds when rates rise (duration risk), more equities when rates are very low.
+ * Data: Feb 2020 – Feb 2025. Replace with FRED/API for production.
  */
 
 export interface AIRecommendationMonth {
@@ -9,17 +10,17 @@ export interface AIRecommendationMonth {
   month: number;
   /** 10Y Treasury yield (%), used in baseline formula */
   tenYYieldPct: number;
-  /** Implied Colt Road baseline equity % from framework: higher rates → more bonds */
+  /** Colt Road baseline equities % from Research-aligned framework. 10Y 4.25% → 50%. */
   suggestedEquityPct: number;
 }
 
-/** Same framework as current Colt Road baseline: equity falls when 10Y rises. Calibrated so 10Y 4.25% → 55% (current baseline). Clamped 25–75. */
+/** Research-aligned framework: neutral 50% at 4.25% 10Y; higher rates → more bonds (short duration); very low rates → more equities. Clamped 35–65. */
 function suggestedEquityFromMacro(tenYYieldPct: number): number {
-  const neutralRate = 2.5;
-  const sensitivity = 8;
-  const base = 69; // 69 - (4.25 - 2.5)*8 = 55 (matches current recommendation)
+  const neutralRate = 4.25;
+  const sensitivity = 6;
+  const base = 50; // 50% at 4.25% 10Y (Colt Road Research 50/50 baseline)
   const raw = base - (tenYYieldPct - neutralRate) * sensitivity;
-  return Math.round(Math.max(25, Math.min(75, raw)));
+  return Math.round(Math.max(35, Math.min(65, raw)));
 }
 
 /** Monthly 10Y yield (approx.) Feb 2020 – Feb 2025. Source: FRED DGS10-style. */

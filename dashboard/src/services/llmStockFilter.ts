@@ -1,9 +1,8 @@
 import type { Stock } from '../types/colt-road';
-
-const LLM_FILTER_API_URL = import.meta.env.VITE_LLM_FILTER_API_URL as string | undefined;
+import { getFilterApiUrl } from '../config/coltRoadApi';
 
 /**
- * LLM-powered stock filter. Set VITE_LLM_FILTER_API_URL in .env to your backend.
+ * LLM-powered stock filter. Configure via header "Configure" or set VITE_LLM_FILTER_API_URL in .env.
  *
  * Backend contract:
  *   POST body: { query: string, stocks: Array<{ ticker, name, sector, pe, marketCap, divYield }> }
@@ -17,9 +16,10 @@ export async function filterStocksWithLLM(query: string, stocks: Stock[]): Promi
   const q = query.trim().toLowerCase();
   if (!q) return stocks.map((s) => s.ticker);
 
-  if (LLM_FILTER_API_URL) {
+  const apiUrl = getFilterApiUrl();
+  if (apiUrl) {
     try {
-      const res = await fetch(LLM_FILTER_API_URL, {
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -112,5 +112,5 @@ function keywordFilterStocks(query: string, stocks: Stock[]): string[] {
 }
 
 export function isLLMApiConfigured(): boolean {
-  return Boolean(LLM_FILTER_API_URL);
+  return Boolean(getFilterApiUrl());
 }
