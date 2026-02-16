@@ -16,7 +16,7 @@ export default function ColtHeader() {
           </div>
           <div style={styles.brandBlock}>
             <h1 style={styles.brandName} className="colt-brand-name">Colt Road Management</h1>
-            <p style={styles.brandSubtitle}>Nimble Engine to Test Your Ideas</p>
+            <p style={styles.brandSubtitle}>Nimble AI Agent to Test Your Investment Ideas</p>
           </div>
           <button
             type="button"

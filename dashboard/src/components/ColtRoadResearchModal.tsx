@@ -13,7 +13,7 @@ import {
 } from 'chart.js';
 import type { ChartOptions } from 'chart.js';
 import type { MarketMacroSnapshot } from '../types/colt-road';
-import { CAPE_BY_YEAR, STOCK_BOND_CORRELATION } from '../data/researchCharts';
+import { CAPE_BY_YEAR, STOCK_BOND_CORRELATION, ALLOCATION_HISTORICAL, ALLOCATION_BY_REGIME } from '../data/researchCharts';
 import { aiRecommendationHistory, getQuarterLabel, getQuarterlyRecommendationHistory } from '../data/aiRecommendationHistory';
 import { fetchMacroSnapshot, getDefaultMacroSnapshot } from '../services/macroApi';
 
@@ -134,10 +134,11 @@ export default function ColtRoadResearchModal({ open, onClose }: ColtRoadResearc
     <div style={styles.overlay} onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="research-title">
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
-          <h2 id="research-title" style={styles.title}>Colt Road&apos;s Research</h2>
+          <h2 id="research-title" style={styles.title}>Colt Road&apos;s Research: Debt/Equity Split</h2>
           <button type="button" onClick={onClose} style={styles.closeBtn} aria-label="Close">×</button>
         </div>
         <div style={styles.body}>
+          <p style={styles.scopeNote}>This research addresses <strong>only</strong> the question of debt/equity split (asset allocation). It does not cover equity composition, stock selection, or industry tilts.</p>
           <h3 style={styles.sectionTitle}>Executive Summary</h3>
           <p style={styles.paragraph}>The era of &quot;set it and forget it&quot; allocation is over. The reliable negative correlation between stocks and bonds that defined the last 40 years has destabilized. We are entering a period of <strong>Structural Volatility</strong>.</p>
           <p style={styles.paragraph}>The optimal portfolio today must be engineered not to predict the future, but to survive the bimodal distribution between <strong>Capital Scarcity (Inflationary Boom)</strong> and <strong>Labor Displacement (Deflationary Bust)</strong>.</p>
@@ -209,47 +210,46 @@ export default function ColtRoadResearchModal({ open, onClose }: ColtRoadResearc
             <div style={styles.ratioCard}><span style={styles.ratioLabel}>Equity risk premium</span><span style={styles.ratioValue}>{macro.equityRiskPremiumEstimatePct}%</span><span style={styles.ratioHint}>Expected excess return of stocks over risk-free.</span></div>
           </div>
 
-          <h3 style={styles.sectionTitle}>Stock Selection: The Ironclad Portfolio</h3>
-          <p style={styles.paragraph}>We do not conflate structural themes with venture-style risk. In a world of geopolitical fragmentation and valuation extremes, unproven tech or volatile commodities violate the first rule of compounding: do not lose money.</p>
-          <p style={styles.paragraph}>We have scrubbed the equity universe of <strong>Speculation</strong> (unproven tech), <strong>Valuation Extremes</strong> (&gt;40× P/E without guarantees), and <strong>Geopolitical Fragility</strong> (assets in conflict zones). What remains is the &quot;Ironclad&quot; portfolio: digital utilities, physical monopolies, and sovereign contractors that monetize capital scarcity through irreplaceable assets and regulatory moats.</p>
-
-          <h3 style={styles.sectionTitle}>Theme I: Digital Utilities (Un-Disruptable Scale)</h3>
-          <p style={styles.paragraph}>We keep the infrastructure owners. If the AI revolution happens, they tax it; if it fails, they still run the global economy.</p>
-          <p style={styles.paragraph}><strong>Microsoft (MSFT).</strong> The moat is integration: Cloud (Azure), OS (Windows), and Productivity (Office). You cannot rip and replace Microsoft without shutting down the company. Balance sheet can weather any &quot;AI Winter.&quot;</p>
-          <p style={styles.paragraph}><strong>Alphabet (GOOGL).</strong> Search is the internet&apos;s nervous system. Often trading at a discount to the S&P 500 (&lt;20× P/E), it is the cheapest quality asset in tech. YouTube and Android provide a floor that speculative AI names lack.</p>
-          <p style={styles.paragraph}><strong>Amazon (AMZN).</strong> The moat is logistics. You cannot replicate warehouses, trucks, and planes without $200B and 20 years. They are the railroad of the digital age. AWS provides the profit; logistics provides the moat.</p>
-
-          <h3 style={styles.sectionTitle}>Theme II: Physical Monopolies (Hard Moats)</h3>
-          <p style={styles.paragraph}>These companies own assets that are legally or physically impossible to replicate.</p>
-          <p style={styles.paragraph}><strong>Waste Management (WM).</strong> NIMBY: permits for new landfills are effectively impossible. WM owns scarcity of trash capacity. They also monetize methane (RNG) from landfills. Recession-proof and inflation-protected.</p>
-          <p style={styles.paragraph}><strong>Canadian Pacific Kansas City (CP).</strong> The only single-line rail network connecting Canada, the U.S., and Mexico. In a de-globalizing world, North American supply chains are fusing. You cannot build a new railroad. Absolute pricing power on the north-south corridor.</p>
-          <p style={styles.paragraph}><strong>Linde (LIN).</strong> Embedded infrastructure: industrial gas plants on the customer&apos;s site with 10–20 year &quot;take-or-pay&quot; contracts. They pass through energy and inflation. The closest thing to a guaranteed return in industrials.</p>
-          <p style={styles.paragraph}><strong>Sherwin-Williams (SHW).</strong> Controlled distribution: 5,000+ owned stores versus competitors who sell through Home Depot. They control the pro-contractor relationship and have margins and pricing power that manufacturing-only rivals cannot match.</p>
-
-          <h3 style={styles.sectionTitle}>Theme III: Sovereign &amp; Critical Infrastructure</h3>
-          <p style={styles.paragraph}>We favor US-domiciled defense and infrastructure over chip names with China risk.</p>
-          <p style={styles.paragraph}><strong>General Dynamics (GD).</strong> Nuclear submarines. One customer (US Navy), effectively one provider. Subs are critical national secrets; backlog is filled for decades. Geopolitical hedge without export-control risk.</p>
-          <p style={styles.paragraph}><strong>Lockheed Martin (LMT).</strong> The F-35 is the backbone of NATO air power; switching costs are infinite. Global defense spending is in a secular bull market. LMT is the blue chip of the sector with a reliable dividend.</p>
-          <p style={styles.paragraph}><strong>TransDigm (TDG).</strong> FAA-certified proprietary aircraft parts; once certified, airlines must use them. They buy sole-source parts makers and raise prices. Margins ~50%. The most efficient cash-flow machine in aerospace.</p>
-          <p style={styles.paragraph}><strong>Eaton (ETN).</strong> Electrical backbone for the US grid. The grid is ~50 years old and must be rebuilt for AI/EVs. Eaton sells the switchgear and transformers every utility needs—the arms dealer for electrification.</p>
-
-          <h3 style={styles.sectionTitle}>Theme IV: Sleep-Well Anchors (Oligopolies)</h3>
-          <p style={styles.paragraph}><strong>Cencora (COR).</strong> With McKesson and Cardinal, they control ~90% of US drug distribution. Pharma volume grows regardless of the economy. Razor-thin margins, massive volume, and a barrier to entry no tech disruptor can cross.</p>
-          <p style={styles.paragraph}><strong>Berkshire Hathaway (BRK.B).</strong> Fortress balance sheet. If the market crashes, $150B+ in cash to buy quality assets at distress prices. If it booms, energy and rail (BNSF) participate. The ultimate hedge.</p>
-          <p style={styles.paragraph}><strong>Verisk Analytics (VRSK).</strong> Data contributory consortium: insurers give data to Verisk; Verisk aggregates and sells analytics back. No insurer can price risk accurately without Verisk. Subscription model with near-zero churn and no geopolitical exposure.</p>
-
-          <h3 style={styles.sectionTitle}>Risk Audit: Ironclad vs. Speculative Portfolio</h3>
+          <h3 style={styles.sectionTitle}>Historical Regressions: What Mixes Have Worked</h3>
+          <p style={styles.paragraph}>Our recommendation is informed by long-run historical regressions. The table below shows <strong>10-year annualized real returns</strong> and <strong>worst 12-month drawdown</strong> for static equity/debt mixes (S&P 500 + intermediate Treasuries). Higher equity delivered higher long-run return but at the cost of much larger drawdowns.</p>
           <table style={styles.table}>
             <thead>
-              <tr><th style={styles.th}>Risk Factor</th><th style={styles.th}>Speculative Portfolio</th><th style={styles.th}>Ironclad Portfolio</th></tr>
+              <tr><th style={styles.th}>Equity %</th><th style={styles.th}>Debt %</th><th style={styles.th}>10Y real return (ann.)</th><th style={styles.th}>Worst drawdown</th></tr>
             </thead>
             <tbody>
-              <tr><td style={styles.td}>Geopolitics</td><td style={styles.td}>High (e.g. Taiwan chip exposure)</td><td style={styles.td}>Low (US-centric rail, waste, defense)</td></tr>
-              <tr><td style={styles.td}>Valuation</td><td style={styles.td}>High (e.g. &gt;100× P/E)</td><td style={styles.td}>Moderate (e.g. GOOGL ~20×, LMT ~17×)</td></tr>
-              <tr><td style={styles.td}>Speculation</td><td style={styles.td}>High (unproven cash flows)</td><td style={styles.td}>Zero (proven cash flows only)</td></tr>
+              {ALLOCATION_HISTORICAL.map((row, i) => (
+                <tr key={i}>
+                  <td style={styles.td}>{row.equityPct}%</td>
+                  <td style={styles.td}>{row.debtPct}%</td>
+                  <td style={styles.td}>{row.realReturn10yPct}%</td>
+                  <td style={styles.td}>{row.maxDrawdownPct}%</td>
+                </tr>
+              ))}
             </tbody>
           </table>
-          <p style={styles.paragraph}><strong>Final word.</strong> This portfolio accepts lower hypothetical upside (no 10× baggers) in exchange for a higher probability of survival. It owns the infrastructure of the economy—data, trash, rail, power, and defense—that will exist in 2035 regardless of who wins the AI race.</p>
+          <p style={styles.paragraph}>The <strong>50/50 mix</strong> historically captured roughly 75% of the long-run return of 100% equity while cutting the worst drawdown by about 40%. That trade-off is the empirical basis for our neutral recommendation when the macro regime is uncertain.</p>
+
+          <h3 style={styles.sectionTitle}>Effectiveness Across Macro Environments</h3>
+          <p style={styles.paragraph}>Strategy effectiveness depends on the macro regime. When stocks and bonds were negatively correlated (e.g. 1982–1999), 60/40 and even 70/30 outperformed. When both were hit (1973–1981 inflation, 2022 rates shock), <strong>50/50 and 40/60 lost less</strong> and often delivered the best risk-adjusted outcome. Our current 50/50 tilt is chosen to perform acceptably in both &quot;capital scarcity&quot; and &quot;labor displacement&quot; regimes, based on these historical successes and failures.</p>
+          <table style={styles.table}>
+            <thead>
+              <tr><th style={styles.th}>Regime</th><th style={styles.th}>Period</th><th style={styles.th}>100% E</th><th style={styles.th}>60/40</th><th style={styles.th}>50/50</th><th style={styles.th}>40/60</th><th style={styles.th}>100% D</th></tr>
+            </thead>
+            <tbody>
+              {ALLOCATION_BY_REGIME.map((row, i) => (
+                <tr key={i}>
+                  <td style={styles.td}>{row.regime}</td>
+                  <td style={styles.td}>{row.period}</td>
+                  <td style={styles.td}>{row.r100e}%</td>
+                  <td style={styles.td}>{row.r6040}%</td>
+                  <td style={styles.td}>{row.r5050}%</td>
+                  <td style={styles.td}>{row.r4060}%</td>
+                  <td style={styles.td}>{row.r0e}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p style={styles.paragraph}>Takeaway: in <strong>high-inflation or positive-correlation</strong> regimes (1973–1981, 2022), 50/50 and 40/60 proved most effective at preserving capital. In <strong>disinflation and low-rate</strong> regimes (1982–1999, 2009–2021), higher equity won but 50/50 still captured most of the upside with lower volatility. We use this evidence to anchor our debt/equity recommendation and to adjust only when trigger metrics (e.g. productivity–wage gap) signal a regime shift.</p>
         </div>
       </div>
     </div>
@@ -264,6 +264,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   closeBtn: { background: 'none', border: 'none', fontSize: '1.5rem', color: '#6d6658', cursor: 'pointer', padding: '0.25rem' },
   body: { overflowY: 'auto', padding: '1.25rem', flex: '1 1 auto', minHeight: 0 },
   sectionTitle: { fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", fontSize: '1.1rem', fontWeight: 700, color: '#0f1f35', marginTop: '1.5rem', marginBottom: '0.5rem', paddingBottom: '0.35rem', borderBottom: '1px solid #d9d2c1' },
+  scopeNote: { fontSize: '0.85rem', color: '#0f1f35', lineHeight: 1.5, margin: '0 0 1rem 0', padding: '0.75rem', background: 'rgba(169, 138, 79, 0.12)', border: '1px solid rgba(169, 138, 79, 0.4)', borderRadius: '4px' },
   paragraph: { fontSize: '0.9rem', color: '#2c2c2c', lineHeight: 1.6, margin: '0 0 0.75rem 0' },
   chartWrap: { height: '220px', margin: '1rem 0' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', marginBottom: '1rem' },

@@ -192,7 +192,7 @@ export default function ProfilePage({ config, updateConfig, onNext, onBack, onSt
       </Section>
 
       {/* ——— Section 2: How personal dynamics impact Colt Road's perspective ——— */}
-      <Section title="How Your Personal Dynamics Might Impact Colt Road's Perspective">
+      <Section title={<>Custom Colt Road&apos;s Recommendation to <span style={{ textDecoration: 'underline' }}>Your Needs</span></>}>
         <p style={styles.sectionDesc}>
           The base split above reflects today’s macro. Your answers below amend Colt Road’s recommendation to fit your time horizon, risk tolerance, and preferences.
         </p>
