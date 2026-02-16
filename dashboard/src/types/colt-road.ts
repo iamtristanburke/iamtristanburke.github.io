@@ -13,6 +13,33 @@ export interface StrategyParams {
   [key: string]: any;
 }
 
+/** Q1: Market factors that inform debt/equity allocation (AI rebalances based on these) */
+export interface MarketFactors {
+  realBondYieldNote?: string;
+  equityValuationNote?: string;
+  buffettRatioNote?: string;
+}
+
+/** Q1: Personal inputs for debt/equity split (AI uses these to suggest allocation) */
+export interface PersonalFactors {
+  timeHorizonYears: number;
+  age: number;
+  riskAppetite: 'conservative' | 'moderate' | 'aggressive';
+  /** Largest portfolio drop in a bad year you could tolerate (%) */
+  maxAcceptableLossPct: number;
+  /** If your portfolio dropped 20% in a year, you would... */
+  ifPortfolioDropped20: 'sell' | 'reduce' | 'hold' | 'add';
+  /** How important is avoiding short-term losses? */
+  avoidShortTermLosses: 'very' | 'somewhat' | 'notVery';
+}
+
+/** Q2: Investment style and themes */
+export type InvestmentStyle = 'growth' | 'income' | 'balanced';
+export type BuySignalType = 'technical' | 'fundamental' | 'ai';
+
+/** Q3: What prompts buys/sells within the portfolio */
+export type BalanceSignalType = 'technical' | 'ai' | 'other';
+
 export interface Config {
   portfolioValue: number;
   targetEquityPct: number;
@@ -31,6 +58,14 @@ export interface Config {
     contrarian?: StrategyParams;
     technical?: StrategyParams;
   };
+  // Q1: Debt/Equity – personal & context (market factors are AI-driven)
+  personalFactors?: PersonalFactors;
+  // Q2: What stocks – style, themes, buy signals
+  investmentStyle?: InvestmentStyle;
+  themes: string[];
+  buySignals: { technical: boolean; fundamental: boolean; ai: boolean };
+  // Q3: Portfolio balance – what triggers trades
+  balanceSignals: { technical: boolean; ai: boolean; other: boolean };
 }
 
 export interface PeriodData {

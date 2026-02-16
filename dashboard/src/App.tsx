@@ -20,7 +20,19 @@ function App() {
     positionLimit: 10,
     accountType: 'taxable',
     taxBracket: 24,
-    strategies: {}
+    strategies: {},
+    personalFactors: {
+      timeHorizonYears: 10,
+      age: 45,
+      riskAppetite: 'moderate',
+      maxAcceptableLossPct: 15,
+      ifPortfolioDropped20: 'hold',
+      avoidShortTermLosses: 'somewhat'
+    },
+    investmentStyle: 'balanced',
+    themes: [],
+    buySignals: { technical: true, fundamental: true, ai: false },
+    balanceSignals: { technical: true, ai: false, other: false }
   });
   const [results, setResults] = useState<BacktestResults | null>(null);
   
@@ -64,6 +76,7 @@ function App() {
       {currentPage === 3 && (
         <StockSelectionPage 
           config={config} 
+          updateConfig={updateConfig}
           toggleStock={toggleStock} 
           onNext={() => setCurrentPage(4)} 
           onBack={() => setCurrentPage(2)} 

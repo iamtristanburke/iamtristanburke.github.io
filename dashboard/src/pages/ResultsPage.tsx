@@ -232,7 +232,7 @@ export default function ResultsPage({ results, config, onRestart }: ResultsPageP
       <ProgressBar current={5} />
       <Section title="Historical Performance Analysis">
         <p style={styles.sectionDesc}>
-          How would your portfolio have performed historically compared to the S&P 500 and a traditional 60/40 portfolio?
+          Based on your debt/equity allocation, stock universe, and balance rules, here is how your portfolio would have performed historically compared to the S&P 500 and a traditional 60/40 portfolio.
         </p>
         
         <div style={styles.periodSelector} className="period-selector">
