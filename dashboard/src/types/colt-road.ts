@@ -72,10 +72,17 @@ export type BuySignalType = 'technical' | 'fundamental' | 'ai';
 /** Q3: What prompts buys/sells within the portfolio */
 export type BalanceSignalType = 'technical' | 'ai' | 'other';
 
+/** How equity is allocated across selected stocks */
+export type PortfolioSizingMethod = 'equalWeight' | 'coltRoadConviction' | 'customized';
+
 export interface Config {
   portfolioValue: number;
   targetEquityPct: number;
   selectedStocks: string[];
+  /** How to weight stocks within the equity sleeve (from step 2). */
+  portfolioSizingMethod?: PortfolioSizingMethod;
+  /** When portfolioSizingMethod is 'customized', weight per ticker as decimal (e.g. 0.10 = 10%). Must sum to 1. */
+  customWeights?: Record<string, number>;
   rebalanceFreq: 'daily' | 'weekly' | 'monthly' | 'quarterly';
   commission: number;
   slippage: number;
@@ -83,6 +90,7 @@ export interface Config {
   accountType: 'taxable' | 'ira' | 'roth';
   taxBracket: number;
   strategies: {
+    buyAndHold?: StrategyParams;
     momentum?: StrategyParams;
     meanReversion?: StrategyParams;
     movingAverage?: StrategyParams;

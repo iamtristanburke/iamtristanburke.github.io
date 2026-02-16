@@ -185,7 +185,7 @@ export default function ProfilePage({ config, updateConfig, onNext, onBack, onSt
 
         {onOpenResearch && (
           <button type="button" onClick={onOpenResearch} style={styles.researchBtn}>
-            Colt Road&apos;s Research
+            Colt Road&apos;s Research on Asset Allocation
           </button>
         )}
 

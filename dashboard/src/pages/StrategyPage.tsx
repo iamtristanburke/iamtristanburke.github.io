@@ -1,9 +1,50 @@
 import { useState } from 'react';
-import { Config } from '../types/colt-road';
+import { Config, PortfolioSizingMethod } from '../types/colt-road';
 import ProgressBar from '../components/ProgressBar';
 import Section from '../components/Section';
 import FormGroup from '../components/FormGroup';
 import ButtonGroup from '../components/ButtonGroup';
+import { ALL_STOCKS } from '../utils/stockDatabase';
+import { COLT_ROAD_CONVICTION_BY_TICKER } from '../data/coltRoadBestIdeas';
+
+const COLT_ICON = '/colt-icon.png?v=2';
+
+/** Format a fraction (0–1) or decimal as percentage string, e.g. 0.067 → "6.7%". */
+function formatPercent(value: number, decimals: number = 1): string {
+  const pct = value * 100;
+  return pct.toFixed(decimals) + '%';
+}
+
+/** Compute weight per ticker (fraction of equity). Sum = 1. */
+function getPortfolioWeights(
+  method: PortfolioSizingMethod,
+  selectedTickers: string[],
+  customWeights?: Record<string, number>
+): Record<string, number> {
+  const n = selectedTickers.length;
+  if (n === 0) return {};
+
+  if (method === 'equalWeight') {
+    const w = 1 / n;
+    return Object.fromEntries(selectedTickers.map((t) => [t, w]));
+  }
+
+  if (method === 'coltRoadConviction') {
+    const score = (ticker: string) => COLT_ROAD_CONVICTION_BY_TICKER[ticker] ?? 10;
+    const scores = selectedTickers.map((t) => score(t));
+    const total = scores.reduce((a, b) => a + b, 0);
+    return Object.fromEntries(selectedTickers.map((t, i) => [t, total > 0 ? scores[i] / total : 1 / n]));
+  }
+
+  if (method === 'customized' && customWeights) {
+    const entries = selectedTickers.map((t) => [t, customWeights[t] ?? 1 / n]);
+    const sum = entries.reduce((a, [, v]) => a + v, 0);
+    if (sum <= 0) return Object.fromEntries(selectedTickers.map((t) => [t, 1 / n]));
+    return Object.fromEntries(entries.map(([t, v]) => [t, v / sum]));
+  }
+
+  return Object.fromEntries(selectedTickers.map((t) => [t, 1 / n]));
+}
 
 interface StrategyPageProps {
   config: Config;
@@ -11,6 +52,7 @@ interface StrategyPageProps {
   onRun: () => void;
   onBack: () => void;
   onStepClick?: (step: number) => void;
+  onOpenPositionSizingResearch?: () => void;
 }
 
 interface Strategy {
@@ -30,10 +72,18 @@ interface Strategy {
   }>;
 }
 
-export default function StrategyPage({ config, updateConfig, onRun, onBack, onStepClick }: StrategyPageProps) {
+export default function StrategyPage({ config, updateConfig, onRun, onBack, onStepClick, onOpenPositionSizingResearch }: StrategyPageProps) {
   const [expandedStrategy, setExpandedStrategy] = useState<string | null>(null);
   
   const strategies: Strategy[] = [
+    {
+      id: 'buyAndHold',
+      name: 'Buy and Hold',
+      description: 'Hold positions with no systematic trading. Rebalance only when allocation drifts or thesis changes.',
+      enabled: config.strategies?.buyAndHold?.enabled !== false,
+      params: config.strategies?.buyAndHold || { enabled: true },
+      paramFields: []
+    },
     {
       id: 'momentum',
       name: 'Momentum',
@@ -155,38 +205,123 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack, onSt
     });
   };
   
-  const balanceSignals = config.balanceSignals ?? { technical: true, ai: false, other: false };
-  const setBalanceSignal = (key: keyof typeof balanceSignals, value: boolean) => {
-    updateConfig('balanceSignals', { ...balanceSignals, [key]: value });
-  };
-
   return (
     <div style={styles.container} className="page-container">
       <ProgressBar current={4} onStepClick={onStepClick} />
-      <Section title="3. How much to balance within the portfolio?">
-        <p style={styles.sectionDesc}>
-          What prompts buys and sells of the stocks in your universe? Choose traditional technical analysis, Colt Road–based signals, and/or other rules. Then configure specific strategies and execution.
+      <Section title="3. How to size positions and trade the stocks?">
+        <div style={styles.perspectiveHeadingRow}>
+          <div style={styles.coltIconWrap}>
+            <img src={COLT_ICON} alt="" style={styles.coltIconWhite} aria-hidden />
+          </div>
+          <h3 style={styles.subsectionTitleInRow}>Colt Road&apos;s Perspective</h3>
+        </div>
+        <p style={styles.perspectiveParagraph}>
+          The best style for most investors is <strong>low-turnover, conviction-weighted position sizing</strong>: hold a concentrated list of high-quality names (like our 15 Best Ideas), size positions by conviction rather than equal-weight, and trade only when the thesis breaks or allocation targets drift. Technical and algorithmic strategies can add value for active traders, but they increase turnover and taxes; we recommend using them sparingly or for a sleeve of the portfolio, not the core.
         </p>
 
-        <h3 style={styles.subsectionTitle}>What triggers buys and sells?</h3>
+        {onOpenPositionSizingResearch && (
+          <button type="button" onClick={onOpenPositionSizingResearch} style={styles.researchBtn}>
+            Colt Road&apos;s Research on Position Sizing and Trading
+          </button>
+        )}
+
+        <h3 style={styles.subsectionTitle}>Portfolio Sizing</h3>
+        <p style={styles.sectionDesc}>
+          Choose how to weight the stocks in your equity sleeve (scoped in steps 1 and 2). Weights apply to the exported portfolio below.
+        </p>
         <div style={styles.optionRow}>
           <label style={styles.checkLabel}>
-            <input type="checkbox" checked={balanceSignals.technical} onChange={(e) => setBalanceSignal('technical', e.target.checked)} style={styles.paramCheckbox} />
-            Traditional technical analysis
+            <input
+              type="radio"
+              name="portfolioSizing"
+              checked={(config.portfolioSizingMethod ?? 'equalWeight') === 'equalWeight'}
+              onChange={() => updateConfig('portfolioSizingMethod', 'equalWeight')}
+              style={styles.paramCheckbox}
+            />
+            Equal Weighting
           </label>
           <label style={styles.checkLabel}>
-            <input type="checkbox" checked={balanceSignals.ai} onChange={(e) => setBalanceSignal('ai', e.target.checked)} style={styles.paramCheckbox} />
-            Colt Road–based signals
+            <input
+              type="radio"
+              name="portfolioSizing"
+              checked={(config.portfolioSizingMethod ?? 'equalWeight') === 'coltRoadConviction'}
+              onChange={() => updateConfig('portfolioSizingMethod', 'coltRoadConviction')}
+              style={styles.paramCheckbox}
+            />
+            Colt Road Conviction Weighting
           </label>
           <label style={styles.checkLabel}>
-            <input type="checkbox" checked={balanceSignals.other} onChange={(e) => setBalanceSignal('other', e.target.checked)} style={styles.paramCheckbox} />
-            Other rules
+            <input
+              type="radio"
+              name="portfolioSizing"
+              checked={(config.portfolioSizingMethod ?? 'equalWeight') === 'customized'}
+              onChange={() => updateConfig('portfolioSizingMethod', 'customized')}
+              style={styles.paramCheckbox}
+            />
+            Customized Weighting
           </label>
         </div>
-        
-        <h3 style={styles.subsectionTitle}>Trading Algorithms</h3>
+
+        <h4 style={styles.portfolioExportTitle}>Exported Portfolio (from steps 1 &amp; 2)</h4>
         <p style={styles.sectionDesc}>
-          Select and configure trading algorithms. Click a strategy to adjust its parameters.
+          Asset allocation from step 1: <strong>{formatPercent(config.targetEquityPct / 100)}</strong> equities, <strong>{formatPercent((100 - config.targetEquityPct) / 100)}</strong> debt. Equity sleeve below is weighted by the option selected above.
+        </p>
+        <div style={styles.portfolioExportWrap}>
+          <table style={styles.portfolioTable}>
+            <thead>
+              <tr>
+                <th style={styles.portfolioTh}>Ticker</th>
+                <th style={styles.portfolioTh}>Company</th>
+                <th style={{ ...styles.portfolioTh, ...styles.portfolioRight }}>Weight (of equity)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const method = config.portfolioSizingMethod ?? 'equalWeight';
+                const weights = getPortfolioWeights(method, config.selectedStocks, config.customWeights);
+                return config.selectedStocks.map((ticker) => {
+                  const stock = ALL_STOCKS.find((s) => s.ticker === ticker);
+                  const pct = (weights[ticker] ?? 0) * 100;
+                  return (
+                    <tr key={ticker}>
+                      <td style={styles.portfolioTd}>{ticker}</td>
+                      <td style={styles.portfolioTd}>{stock?.name ?? ticker}</td>
+                      <td style={{ ...styles.portfolioTd, ...styles.portfolioRight }}>
+                        {method === 'customized' ? (
+                          <span style={styles.portfolioWeightCell}>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={0.5}
+                              value={pct.toFixed(1)}
+                              onChange={(e) => {
+                                const v = parseFloat(e.target.value) / 100;
+                                const next = { ...(config.customWeights ?? {}), [ticker]: isNaN(v) ? 0 : v };
+                                updateConfig('customWeights', next);
+                              }}
+                              style={styles.portfolioWeightInput}
+                            />
+                            <span style={styles.portfolioWeightSuffix}>%</span>
+                          </span>
+                        ) : (
+                          formatPercent(weights[ticker] ?? 0)
+                        )}
+                      </td>
+                    </tr>
+                  );
+                });
+              })()}
+            </tbody>
+          </table>
+        </div>
+        {(config.portfolioSizingMethod ?? 'equalWeight') === 'coltRoadConviction' && (
+          <p style={styles.hint}>Weights based on Colt Road&apos;s attractiveness score (0–100) from the Structural Alpha approach in step 2: Value (EBIT/EV), Quality (GP/Assets), Yield (Shareholder Yield), and thematic fit. Higher score = higher weight.</p>
+        )}
+
+        <h3 style={styles.subsectionTitle}>Trading Strategies</h3>
+        <p style={styles.sectionDesc}>
+          Select and configure trading strategies. Click a strategy to adjust its parameters.
         </p>
         <div style={styles.strategyGrid} className="strategy-grid">
           {strategies.map(strategy => (
@@ -208,7 +343,7 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack, onSt
                 </div>
                 <p style={styles.strategyDesc}>{strategy.description}</p>
                 
-                {strategy.params.enabled && (
+                {strategy.params.enabled && strategy.paramFields.length > 0 && (
                   <div style={styles.strategyParams}>
                     <button 
                       style={styles.configButton}
@@ -339,16 +474,75 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   sectionDesc: {
     marginBottom: '2rem',
-    color: '#6d6658'
+    color: '#6d6658',
+    lineHeight: 1.5
   },
   subsectionTitle: {
     fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontSize: '1.5rem',
+    fontSize: '1.35rem',
     color: '#0f1f35',
-    marginTop: '3rem',
-    marginBottom: '1.5rem',
-    paddingBottom: '0.75rem',
+    marginTop: '2rem',
+    marginBottom: '1rem',
+    paddingBottom: '0.5rem',
     borderBottom: '2px solid #d9d2c1'
+  },
+  subsectionTitleInRow: {
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '1.35rem',
+    color: '#0f1f35',
+    margin: 0,
+    paddingBottom: 0
+  },
+  perspectiveHeadingRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.35rem',
+    marginTop: '2rem',
+    marginBottom: '0.75rem',
+    paddingBottom: '0.5rem',
+    borderBottom: '2px solid #d9d2c1'
+  },
+  coltIconWrap: {
+    width: '40px',
+    height: '40px',
+    flexShrink: 0,
+    background: '#0f1f35',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '6px',
+    boxSizing: 'border-box',
+    border: 'none',
+    outline: 'none'
+  },
+  coltIconWhite: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+    filter: 'invert(1)',
+    mixBlendMode: 'lighten'
+  },
+  perspectiveParagraph: {
+    margin: '0 0 1.5rem 0',
+    fontSize: '0.95rem',
+    color: '#2c2c2c',
+    lineHeight: 1.65,
+    maxWidth: '720px'
+  },
+  researchBtn: {
+    display: 'block',
+    width: '100%',
+    marginTop: '0.5rem',
+    marginBottom: '1.5rem',
+    padding: '0.5rem 1.25rem',
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '0.95rem',
+    fontWeight: 600,
+    color: '#0f1f35',
+    background: '#e8eef4',
+    border: '2px solid #0f1f35',
+    borderRadius: '4px',
+    cursor: 'pointer'
   },
   optionRow: {
     display: 'flex',
@@ -356,6 +550,64 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '1.5rem',
     alignItems: 'center',
     marginBottom: '2rem'
+  },
+  portfolioExportTitle: {
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '1.1rem',
+    color: '#0f1f35',
+    marginTop: '1.5rem',
+    marginBottom: '0.5rem'
+  },
+  portfolioExportWrap: {
+    overflowX: 'auto',
+    marginBottom: '1.5rem',
+    border: '1px solid #d9d2c1',
+    borderRadius: '6px',
+    background: '#fbf9f4'
+  },
+  portfolioTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '0.9rem'
+  },
+  portfolioTh: {
+    textAlign: 'left',
+    padding: '0.6rem 0.75rem',
+    borderBottom: '2px solid #d9d2c1',
+    color: '#0f1f35',
+    fontWeight: 600
+  },
+  portfolioTd: {
+    padding: '0.5rem 0.75rem',
+    borderBottom: '1px solid #e8e4dc',
+    color: '#2c2c2c'
+  },
+  portfolioRight: {
+    textAlign: 'right'
+  },
+  portfolioWeightCell: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.2rem'
+  },
+  portfolioWeightInput: {
+    width: '4.5rem',
+    padding: '0.25rem 0.35rem',
+    fontSize: '0.9rem',
+    border: '1px solid #d9d2c1',
+    borderRadius: '4px',
+    textAlign: 'right'
+  },
+  portfolioWeightSuffix: {
+    fontSize: '0.9rem',
+    color: '#2c2c2c'
+  },
+  hint: {
+    fontSize: '0.85rem',
+    color: '#6d6658',
+    marginTop: '-0.5rem',
+    marginBottom: '1.5rem',
+    lineHeight: 1.45
   },
   checkLabel: {
     display: 'flex',

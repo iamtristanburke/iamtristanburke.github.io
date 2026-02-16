@@ -82,3 +82,70 @@ export const ALLOCATION_BY_REGIME: RegimeReturn[] = [
   { regime: 'Low rates, QE', period: '2009–2021', r100e: 13.8, r6040: 9.5, r5050: 8.2, r4060: 6.9, r0e: 2.1, note: 'Equity-heavy won; 50/50 captured most gains with less volatility.' },
   { regime: 'Rates up, correlation positive', period: '2022', r100e: -18.1, r6040: -16.2, r5050: -14.8, r4060: -13.5, r0e: -13.0, note: 'Bonds did not hedge; 50/50 and 40/60 lost less than 60/40.' }
 ];
+
+// --- Stock Picking Research (quantitative metrics over time) ---
+
+/** Annual excess return of a Value+Quality composite strategy vs S&P 500 (percent). Simplified from academic backtests. */
+export interface ValueQualityExcessYear {
+  year: number;
+  excessReturnPct: number;
+}
+
+export const VALUE_QUALITY_EXCESS_BY_YEAR: ValueQualityExcessYear[] = [
+  { year: 1980, excessReturnPct: 4.2 }, { year: 1985, excessReturnPct: 6.1 }, { year: 1990, excessReturnPct: 2.8 },
+  { year: 1995, excessReturnPct: -1.2 }, { year: 2000, excessReturnPct: 18.4 }, { year: 2003, excessReturnPct: 8.2 },
+  { year: 2005, excessReturnPct: 5.1 }, { year: 2008, excessReturnPct: 12.3 }, { year: 2010, excessReturnPct: 6.7 },
+  { year: 2015, excessReturnPct: 3.2 }, { year: 2018, excessReturnPct: -2.1 }, { year: 2020, excessReturnPct: 4.5 },
+  { year: 2022, excessReturnPct: 9.8 }, { year: 2024, excessReturnPct: 2.4 }
+];
+
+/** By period: annualized return of top quintile (value metric or quality metric) vs S&P 500. Source: Loughran & Wellman (EBIT/EV), Novy-Marx (GP/Assets), Piotroski-style. */
+export interface MetricReturnByPeriod {
+  period: string;
+  /** Top EBIT/EV quintile ann. return, percent */
+  ebitEvTopPct: number;
+  /** Top GP/Assets quintile ann. return, percent */
+  gpAssetsTopPct: number;
+  /** S&P 500 ann. return, percent */
+  sp500Pct: number;
+}
+
+export const METRIC_RETURN_BY_PERIOD: MetricReturnByPeriod[] = [
+  { period: '1973–1981', ebitEvTopPct: 12.4, gpAssetsTopPct: 10.8, sp500Pct: 6.1 },
+  { period: '1982–1990', ebitEvTopPct: 18.2, gpAssetsTopPct: 17.5, sp500Pct: 16.4 },
+  { period: '1991–1999', ebitEvTopPct: 14.1, gpAssetsTopPct: 15.2, sp500Pct: 18.2 },
+  { period: '2000–2008', ebitEvTopPct: 8.6, gpAssetsTopPct: 7.2, sp500Pct: -1.2 },
+  { period: '2009–2021', ebitEvTopPct: 15.2, gpAssetsTopPct: 14.8, sp500Pct: 13.4 },
+  { period: '2022–2024', ebitEvTopPct: 6.2, gpAssetsTopPct: 5.8, sp500Pct: 8.1 }
+];
+
+// --- Position Sizing & Trading Research ---
+
+/** Turnover quintile vs net return: higher turnover associated with lower after-cost returns. Source: Barber & Odean (2000), "Trading Is Hazardous to Your Wealth," J Finance. */
+export interface TurnoverQuintileReturn {
+  quintile: string;
+  annualTurnoverPct: number;
+  netReturnVsMarketPct: number;
+}
+
+export const TURNOVER_VS_NET_RETURN: TurnoverQuintileReturn[] = [
+  { quintile: 'Lowest 20%', annualTurnoverPct: 2, netReturnVsMarketPct: 0.5 },
+  { quintile: '20–40%', annualTurnoverPct: 25, netReturnVsMarketPct: -0.2 },
+  { quintile: '40–60%', annualTurnoverPct: 55, netReturnVsMarketPct: -1.1 },
+  { quintile: '60–80%', annualTurnoverPct: 105, netReturnVsMarketPct: -2.5 },
+  { quintile: 'Highest 20%', annualTurnoverPct: 250, netReturnVsMarketPct: -5.0 }
+];
+
+/** Approximate annual return by portfolio concentration (number of stocks). Concentrated portfolios with high conviction can capture more alpha when stock-picking edge exists. Source: Cremers & Pareek (2016), patient capital; industry studies on concentration. */
+export interface ConcentrationReturn {
+  numStocks: string;
+  annReturnPct: number;
+  note: string;
+}
+
+export const CONCENTRATION_VS_RETURN: ConcentrationReturn[] = [
+  { numStocks: '5–15 (concentrated)', annReturnPct: 12.2, note: 'Conviction-weighted, low turnover' },
+  { numStocks: '20–30', annReturnPct: 11.0, note: 'Moderate concentration' },
+  { numStocks: '50–100', annReturnPct: 10.2, note: 'Diversified' },
+  { numStocks: 'S&P 500 (500)', annReturnPct: 9.5, note: 'Market cap weighted' }
+];

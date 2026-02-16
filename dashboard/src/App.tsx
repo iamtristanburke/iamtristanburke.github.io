@@ -16,13 +16,14 @@ function App() {
     portfolioValue: 100000,
     targetEquityPct: 70,
     selectedStocks: [...COLT_ROAD_BEST_IDEAS_TICKERS],
+    portfolioSizingMethod: 'equalWeight',
     rebalanceFreq: 'quarterly',
     commission: 0,
     slippage: 0.1,
     positionLimit: 10,
     accountType: 'taxable',
     taxBracket: 24,
-    strategies: {},
+    strategies: { buyAndHold: { enabled: true } },
     personalFactors: {
       timeHorizonYears: 10,
       age: 45,
@@ -40,7 +41,9 @@ function App() {
     balanceSignals: { technical: true, ai: false, other: false }
   });
   const [results, setResults] = useState<BacktestResults | null>(null);
-  const [researchOpen, setResearchOpen] = useState(false);
+  const [assetAllocationResearchOpen, setAssetAllocationResearchOpen] = useState(false);
+  const [stockPickingResearchOpen, setStockPickingResearchOpen] = useState(false);
+  const [positionSizingResearchOpen, setPositionSizingResearchOpen] = useState(false);
 
   const updateConfig = (key: keyof Config, value: any) => {
     setConfig(prev => ({ ...prev, [key]: value }));
@@ -69,7 +72,9 @@ function App() {
   return (
     <div style={styles.app}>
       <ColtHeader />
-      <ColtRoadResearchModal open={researchOpen} onClose={() => setResearchOpen(false)} />
+      <ColtRoadResearchModal variant="assetAllocation" open={assetAllocationResearchOpen} onClose={() => setAssetAllocationResearchOpen(false)} />
+      <ColtRoadResearchModal variant="stockPicking" open={stockPickingResearchOpen} onClose={() => setStockPickingResearchOpen(false)} />
+      <ColtRoadResearchModal variant="positionSizing" open={positionSizingResearchOpen} onClose={() => setPositionSizingResearchOpen(false)} />
 
       {currentPage === 1 && <LandingPage onStart={() => setCurrentPage(2)} />}
       {currentPage === 2 && (
@@ -79,7 +84,7 @@ function App() {
           onNext={() => setCurrentPage(3)} 
           onBack={() => setCurrentPage(1)}
           onStepClick={setCurrentPage}
-          onOpenResearch={() => setResearchOpen(true)}
+          onOpenResearch={() => setAssetAllocationResearchOpen(true)}
         />
       )}
       {currentPage === 3 && (
@@ -90,7 +95,7 @@ function App() {
           onNext={() => setCurrentPage(4)} 
           onBack={() => setCurrentPage(2)}
           onStepClick={setCurrentPage}
-          onOpenResearch={() => setResearchOpen(true)}
+          onOpenResearch={() => setStockPickingResearchOpen(true)}
         />
       )}
       {currentPage === 4 && (
@@ -100,6 +105,7 @@ function App() {
           onRun={runBacktest} 
           onBack={() => setCurrentPage(3)}
           onStepClick={setCurrentPage}
+          onOpenPositionSizingResearch={() => setPositionSizingResearchOpen(true)}
         />
       )}
       {currentPage === 5 && results && (

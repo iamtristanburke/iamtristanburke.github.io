@@ -66,19 +66,20 @@ export default function StockSelectionPage({ config, updateConfig: _updateConfig
       : ALL_STOCKS.filter((s) => llmFilteredTickers.includes(s.ticker));
   
   const sortedStocks = [...filteredStocks].sort((a, b) => {
-    let aVal: any = a[sortBy];
-    let bVal: any = b[sortBy];
-    
-    if (sortBy === 'marketCap' || sortBy === 'pe') {
-      aVal = parseFloat(aVal.toString());
-      bVal = parseFloat(bVal.toString());
+    const key = sortBy;
+    let aVal: string | number = a[key] as string | number;
+    let bVal: string | number = b[key] as string | number;
+    const numericKeys: (keyof Stock)[] = ['marketCap', 'pe', 'divYield'];
+    if (numericKeys.includes(key)) {
+      const aNum = Number(aVal) || 0;
+      const bNum = Number(bVal) || 0;
+      const out = aNum < bNum ? -1 : aNum > bNum ? 1 : 0;
+      return sortDir === 'asc' ? out : -out;
     }
-    
-    if (sortDir === 'asc') {
-      return aVal > bVal ? 1 : -1;
-    } else {
-      return aVal < bVal ? 1 : -1;
-    }
+    const aStr = String(aVal ?? '').toLowerCase();
+    const bStr = String(bVal ?? '').toLowerCase();
+    const cmp = aStr.localeCompare(bStr, undefined, { sensitivity: 'base' });
+    return sortDir === 'asc' ? cmp : -cmp;
   });
   
   const handleSort = (column: keyof Stock) => {
@@ -120,15 +121,16 @@ export default function StockSelectionPage({ config, updateConfig: _updateConfig
           <h3 style={styles.subsectionTitle}>Colt Road&apos;s Perspective</h3>
         </div>
         <p style={styles.perspectiveParagraph}>
-          We invest as the world&apos;s most sophisticated allocators: we buy businesses we want to own for at least five years, preferably a decade or more. We care about earnings visibility, balance-sheet strength, and durable competitive advantages—not next quarter&apos;s print. Quality growth, dividend growers with room to run, and cyclicals with pricing power beat momentum and speculation over time. Use the search below to narrow the universe to what fits your view.
+          We buy <strong>cheap, profitable</strong> companies inside <strong>secular growth themes Colt Road&apos;s AI has identified as being the most relevant for the next 5–10 years+</strong>—not value traps in dying industries. Our universe: AI Physical Infrastructure, Silver Economy, Industrial Reshoring. Every name must pass a strict gate (Piotroski F-Score ≥7, ROIC &gt; WACC, Shareholder Yield &gt; 0), then we rank by Value (40%), Quality (40%), and Yield (20%). The result is Colt Road&apos;s 15 Best Ideas—listed and auto-selected below.
         </p>
         {onOpenResearch && (
           <button type="button" onClick={onOpenResearch} style={styles.researchBtn}>
-            Colt Road&apos;s Research
+            Colt Road&apos;s Research on Stock Picking
           </button>
         )}
         <p style={styles.bestIdeasLabel}>Colt Road&apos;s 15 Best Ideas</p>
-        <ul style={styles.bestIdeasList}>
+        <p style={styles.bestIdeasSubtext}>S&amp;P 500 names that best fit the Structural Alpha methodology (thematic universe + quality/value/yield). Same list appears in Colt Road&apos;s Research on Stock Picking.</p>
+        <ol style={styles.bestIdeasList} start={1}>
           {COLT_ROAD_BEST_IDEAS.map(({ ticker, name, theme }) => (
             <li key={ticker} style={styles.bestIdeasItem}>
               {name} (
@@ -142,7 +144,7 @@ export default function StockSelectionPage({ config, updateConfig: _updateConfig
               ): {theme}
             </li>
           ))}
-        </ul>
+        </ol>
 
         <h3 style={styles.subsectionTitleStandalone}>Your stock universe</h3>
         <p style={styles.sectionDesc}>Select stocks for your equity allocation. Describe the kind of stocks you want below; Colt Road will filter the list to match.</p>
@@ -188,16 +190,22 @@ export default function StockSelectionPage({ config, updateConfig: _updateConfig
             <thead>
               <tr style={styles.tableHeader}>
                 <th style={styles.th}>Select</th>
-                <th style={styles.th}>Ticker</th>
-                <th style={styles.th}>Company</th>
-                <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('marketCap')}>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('ticker')}>
+                  Ticker {sortBy === 'ticker' && (sortDir === 'asc' ? '▲' : '▼')}
+                </th>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('name')}>
+                  Company {sortBy === 'name' && (sortDir === 'asc' ? '▲' : '▼')}
+                </th>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('marketCap')}>
                   Market Cap {sortBy === 'marketCap' && (sortDir === 'asc' ? '▲' : '▼')}
                 </th>
-                <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('pe')}>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('pe')}>
                   P/E Ratio {sortBy === 'pe' && (sortDir === 'asc' ? '▲' : '▼')}
                 </th>
-                <th style={styles.th}>Div Yield</th>
-                <th style={{...styles.th, cursor: 'pointer'}} onClick={() => handleSort('sector')}>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('divYield')}>
+                  Div Yield {sortBy === 'divYield' && (sortDir === 'asc' ? '▲' : '▼')}
+                </th>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('sector')}>
                   Sector {sortBy === 'sector' && (sortDir === 'asc' ? '▲' : '▼')}
                 </th>
               </tr>
@@ -327,10 +335,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     textTransform: 'uppercase',
     letterSpacing: '0.04em'
   },
+  bestIdeasSubtext: {
+    fontSize: '0.85rem',
+    color: '#6d6658',
+    marginBottom: '0.5rem',
+    lineHeight: 1.45
+  },
   bestIdeasList: {
     margin: '0 0 1.5rem 0',
-    paddingLeft: '1.25rem',
-    maxWidth: '720px'
+    paddingLeft: '1.5rem',
+    maxWidth: '720px',
+    listStyleType: 'decimal'
   },
   bestIdeasItem: {
     fontSize: '0.95rem',
