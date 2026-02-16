@@ -7,7 +7,7 @@ import ProgressBar from '../components/ProgressBar';
 import Section from '../components/Section';
 import ButtonGroup from '../components/ButtonGroup';
 import StockDetailPanel from '../components/StockDetailPanel';
-import { COLT_ROAD_BEST_IDEAS, COLT_ROAD_BEST_IDEAS_TICKERS } from '../data/coltRoadBestIdeas';
+import { COLT_ROAD_BEST_IDEAS } from '../data/coltRoadBestIdeas';
 
 const COLT_ICON = '/colt-icon.png?v=2';
 
