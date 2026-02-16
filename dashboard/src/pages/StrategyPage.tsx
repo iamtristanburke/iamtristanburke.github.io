@@ -37,7 +37,7 @@ function getPortfolioWeights(
   }
 
   if (method === 'customized' && customWeights) {
-    const entries = selectedTickers.map((t) => [t, customWeights[t] ?? 1 / n]);
+    const entries: [string, number][] = selectedTickers.map((t) => [t, Number(customWeights[t]) || 1 / n]);
     const sum = entries.reduce((a, [, v]) => a + v, 0);
     if (sum <= 0) return Object.fromEntries(selectedTickers.map((t) => [t, 1 / n]));
     return Object.fromEntries(entries.map(([t, v]) => [t, v / sum]));
