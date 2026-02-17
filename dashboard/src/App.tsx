@@ -63,10 +63,14 @@ function App() {
       alert('Please select at least one stock');
       return;
     }
-    
-    const backtestResults = generateBacktest(config);
-    setResults(backtestResults);
-    setCurrentPage(5);
+    try {
+      const backtestResults = generateBacktest(config);
+      setResults(backtestResults);
+      setCurrentPage(5);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Backtest failed. Historical price data may be missing.';
+      alert(message);
+    }
   };
   
   return (

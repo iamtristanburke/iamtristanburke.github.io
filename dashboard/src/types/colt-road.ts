@@ -75,6 +75,26 @@ export type BalanceSignalType = 'technical' | 'ai' | 'other';
 /** How equity is allocated across selected stocks */
 export type PortfolioSizingMethod = 'equalWeight' | 'coltRoadConviction' | 'customized';
 
+/** Exactly one trading strategy is active; backtest applies it retroactively. */
+export type TradingStrategyId =
+  | 'buyAndHold'
+  | 'momentum'
+  | 'meanReversion'
+  | 'movingAverage'
+  | 'breakout'
+  | 'contrarian'
+  | 'technical';
+
+export const TRADING_STRATEGY_DISPLAY_NAMES: Record<TradingStrategyId, string> = {
+  buyAndHold: 'Buy and Hold',
+  momentum: 'Momentum',
+  meanReversion: 'Mean Reversion',
+  movingAverage: 'Moving Average Crossover',
+  breakout: 'Breakout',
+  contrarian: 'Contrarian',
+  technical: 'Technical Indicators'
+};
+
 export interface Config {
   portfolioValue: number;
   targetEquityPct: number;
@@ -136,11 +156,28 @@ export interface PeriodResult {
 
 export interface BacktestResults {
   periods: PeriodResult[];
+  /** ISO date (YYYY-MM-DD) when historical price data was last updated. All returns are derived from this data. */
+  lastUpdated: string;
 }
 
 export interface HistoricalReturns {
   equity: number[];
   bonds: number[];
   sp500: number[];
+}
+
+/** Per-ticker monthly series: dates (YYYY-MM-DD), prices (adjusted close). */
+export interface HistoricalPriceSeries {
+  dates: string[];
+  prices: number[];
+}
+
+/** All tickers' historical data. Keys: ticker symbol (e.g. AAPL, SPY, AGG). */
+export type HistoricalPrices = Record<string, HistoricalPriceSeries>;
+
+/** Bundled file: lastUpdated date and per-ticker monthly prices (adjusted close). Auditable; no synthetic data. */
+export interface HistoricalPricesData {
+  lastUpdated: string;
+  prices: Record<string, HistoricalPriceSeries>;
 }
 

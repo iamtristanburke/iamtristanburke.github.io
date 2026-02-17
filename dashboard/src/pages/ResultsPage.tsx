@@ -13,8 +13,9 @@ import {
 } from 'chart.js';
 import type { ChartOptions } from 'chart.js';
 import * as XLSX from 'xlsx';
-import { Config, BacktestResults } from '../types/colt-road';
+import { Config, BacktestResults, TradingStrategyId, TRADING_STRATEGY_DISPLAY_NAMES } from '../types/colt-road';
 import { ALL_STOCKS } from '../utils/stockDatabase';
+import { getPortfolioWeights } from '../utils/portfolioWeights';
 import ProgressBar from '../components/ProgressBar';
 import Section from '../components/Section';
 import { formatNumber, formatCurrency } from '../utils/formatters';
@@ -76,10 +77,15 @@ function ComparisonCard({ title, totalReturn, annualizedReturn, finalValue, high
   );
 }
 
+const STRATEGY_IDS: TradingStrategyId[] = ['buyAndHold', 'momentum', 'meanReversion', 'movingAverage', 'breakout', 'contrarian', 'technical'];
+
 export default function ResultsPage({ results, config, onRestart, onStepClick }: ResultsPageProps) {
   const [selectedPeriod, setSelectedPeriod] = useState(0);
   
   const currentPeriod = results.periods[selectedPeriod];
+  const activeStrategyName = TRADING_STRATEGY_DISPLAY_NAMES[
+    STRATEGY_IDS.find((id) => config.strategies?.[id]?.enabled) ?? 'buyAndHold'
+  ];
   
   const downloadExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -258,9 +264,14 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
   const equityDollars = config.portfolioValue * (equityPct / 100);
   const bondDollars = config.portfolioValue * (bondPct / 100);
   const selectedStocks = config.selectedStocks ?? [];
-  const stockCount = Math.max(1, selectedStocks.length);
-  const perStockDollars = equityDollars / stockCount;
-  const perStockPct = equityPct / stockCount;
+  const portfolioWeights = useMemo(
+    () => getPortfolioWeights(
+      config.portfolioSizingMethod ?? 'equalWeight',
+      selectedStocks,
+      config.customWeights
+    ),
+    [config.portfolioSizingMethod, config.customWeights, selectedStocks]
+  );
   const tickerToName = useMemo(() => {
     const map: Record<string, string> = {};
     ALL_STOCKS.forEach((s) => { map[s.ticker] = s.name; });
@@ -282,6 +293,11 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
         <p style={styles.portfolioTodayDesc}>
           Based on your time horizon, risk tolerance, share of wealth in this portfolio, and other factors, here is your recommended allocation by security.
         </p>
+        {results.lastUpdated && (
+          <p style={styles.dataAsOf}>
+            All returns and prices in this backtest are derived from actual security data (S&P 500, selected equities, and aggregate bonds). <strong>Data as of {results.lastUpdated}</strong>. Trading strategy applied retroactively: <strong>{activeStrategyName}</strong>.
+          </p>
+        )}
         <div style={styles.allocationTableWrap}>
           <table style={styles.allocationTable}>
             <thead>
@@ -293,16 +309,21 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
             </thead>
             <tbody>
               {selectedStocks.length > 0 ? (
-                selectedStocks.map((ticker) => (
-                  <tr key={ticker} style={styles.allocationRow}>
-                    <td style={styles.allocationTd}>
-                      {ticker}
-                      {tickerToName[ticker] ? ` — ${tickerToName[ticker]}` : ''}
-                    </td>
-                    <td style={styles.allocationTd}>{formatCurrency(perStockDollars, 0)}</td>
-                    <td style={styles.allocationTd}>{perStockPct.toFixed(1)}%</td>
-                  </tr>
-                ))
+                selectedStocks.map((ticker) => {
+                  const weight = portfolioWeights[ticker] ?? 0;
+                  const stockDollars = equityDollars * weight;
+                  const stockPctOfPortfolio = equityPct * weight;
+                  return (
+                    <tr key={ticker} style={styles.allocationRow}>
+                      <td style={styles.allocationTd}>
+                        {ticker}
+                        {tickerToName[ticker] ? ` — ${tickerToName[ticker]}` : ''}
+                      </td>
+                      <td style={styles.allocationTd}>{formatCurrency(stockDollars, 0)}</td>
+                      <td style={styles.allocationTd}>{stockPctOfPortfolio.toFixed(1)}%</td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr style={styles.allocationRow}>
                   <td style={styles.allocationTd}>Stocks (equity)</td>
@@ -407,6 +428,13 @@ const styles: { [key: string]: React.CSSProperties } = {
   portfolioTodayDesc: {
     marginBottom: '1.5rem',
     fontSize: '0.95rem',
+    color: '#6d6658',
+    lineHeight: 1.5,
+    maxWidth: '640px'
+  },
+  dataAsOf: {
+    marginBottom: '1.5rem',
+    fontSize: '0.85rem',
     color: '#6d6658',
     lineHeight: 1.5,
     maxWidth: '640px'

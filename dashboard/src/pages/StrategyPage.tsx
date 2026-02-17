@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Config, PortfolioSizingMethod } from '../types/colt-road';
+import { Config } from '../types/colt-road';
 import ProgressBar from '../components/ProgressBar';
 import Section from '../components/Section';
 import FormGroup from '../components/FormGroup';
 import ButtonGroup from '../components/ButtonGroup';
 import { ALL_STOCKS } from '../utils/stockDatabase';
-import { COLT_ROAD_CONVICTION_BY_TICKER } from '../data/coltRoadBestIdeas';
+import { getPortfolioWeights } from '../utils/portfolioWeights';
 
 const COLT_ICON = '/colt-icon.png?v=2';
 
@@ -13,37 +13,6 @@ const COLT_ICON = '/colt-icon.png?v=2';
 function formatPercent(value: number, decimals: number = 1): string {
   const pct = value * 100;
   return pct.toFixed(decimals) + '%';
-}
-
-/** Compute weight per ticker (fraction of equity). Sum = 1. */
-function getPortfolioWeights(
-  method: PortfolioSizingMethod,
-  selectedTickers: string[],
-  customWeights?: Record<string, number>
-): Record<string, number> {
-  const n = selectedTickers.length;
-  if (n === 0) return {};
-
-  if (method === 'equalWeight') {
-    const w = 1 / n;
-    return Object.fromEntries(selectedTickers.map((t) => [t, w]));
-  }
-
-  if (method === 'coltRoadConviction') {
-    const score = (ticker: string) => COLT_ROAD_CONVICTION_BY_TICKER[ticker] ?? 10;
-    const scores = selectedTickers.map((t) => score(t));
-    const total = scores.reduce((a, b) => a + b, 0);
-    return Object.fromEntries(selectedTickers.map((t, i) => [t, total > 0 ? scores[i] / total : 1 / n]));
-  }
-
-  if (method === 'customized' && customWeights) {
-    const entries: [string, number][] = selectedTickers.map((t) => [t, Number(customWeights[t]) || 1 / n]);
-    const sum = entries.reduce((a, [, v]) => a + v, 0);
-    if (sum <= 0) return Object.fromEntries(selectedTickers.map((t) => [t, 1 / n]));
-    return Object.fromEntries(entries.map(([t, v]) => [t, v / sum]));
-  }
-
-  return Object.fromEntries(selectedTickers.map((t) => [t, 1 / n]));
 }
 
 interface StrategyPageProps {
@@ -178,18 +147,18 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack, onSt
     }
   ];
   
-  const toggleStrategy = (strategyId: string) => {
-    const strategy = strategies.find(s => s.id === strategyId);
+  /** Select exactly one trading strategy. Backtest will apply it retroactively. */
+  const selectStrategy = (strategyId: string) => {
     const currentStrategies = config.strategies || {};
-    const currentParams = currentStrategies[strategyId as keyof typeof currentStrategies] || strategy?.params;
-    
-    updateConfig('strategies', {
-      ...currentStrategies,
-      [strategyId]: {
-        ...currentParams,
-        enabled: !currentParams?.enabled
-      }
-    });
+    const next: typeof currentStrategies = {};
+    for (const s of strategies) {
+      const params = currentStrategies[s.id as keyof typeof currentStrategies] || s.params;
+      next[s.id as keyof typeof next] = {
+        ...params,
+        enabled: s.id === strategyId
+      };
+    }
+    updateConfig('strategies', next);
   };
   
   const updateStrategyParam = (strategyId: string, paramKey: string, value: any) => {
@@ -319,9 +288,9 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack, onSt
           <p style={styles.hint}>Weights based on Colt Road&apos;s attractiveness score (0–100) from the Structural Alpha approach in step 2: Value (EBIT/EV), Quality (GP/Assets), Yield (Shareholder Yield), and thematic fit. Higher score = higher weight.</p>
         )}
 
-        <h3 style={styles.subsectionTitle}>Trading Strategies</h3>
+        <h3 style={styles.subsectionTitle}>Trading Strategy</h3>
         <p style={styles.sectionDesc}>
-          Select and configure trading strategies. Click a strategy to adjust its parameters.
+          Select one strategy. The backtest will apply it retroactively to historical prices.
         </p>
         <div style={styles.strategyGrid} className="strategy-grid">
           {strategies.map(strategy => (
@@ -332,11 +301,12 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack, onSt
                   ...(strategy.params.enabled ? styles.strategyCardActive : {})
                 }}
               >
-                <div style={styles.strategyHeader} onClick={() => toggleStrategy(strategy.id)}>
+                <div style={styles.strategyHeader} onClick={() => selectStrategy(strategy.id)}>
                   <input 
-                    type="checkbox" 
+                    type="radio" 
+                    name="tradingStrategy"
                     checked={strategy.params.enabled}
-                    onChange={() => {}}
+                    onChange={() => selectStrategy(strategy.id)}
                     style={styles.strategyCheckbox}
                   />
                   <h4 style={styles.strategyName}>{strategy.name}</h4>
