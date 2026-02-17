@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Config, BacktestResults } from './types/colt-road';
+import { useState, useCallback } from 'react';
+import { Config, BacktestResults, HistoricalPricesData } from './types/colt-road';
 import ColtHeader from './components/ColtHeader';
 import ColtRoadResearchModal from './components/ColtRoadResearchModal';
 import LandingPage from './pages/LandingPage';
@@ -9,6 +9,12 @@ import StrategyPage from './pages/StrategyPage';
 import ResultsPage from './pages/ResultsPage';
 import { generateBacktest } from './utils/backtest';
 import { COLT_ROAD_BEST_IDEAS_TICKERS } from './data/coltRoadBestIdeas';
+
+function getHistoricalDataUrl(): string {
+  const base = typeof import.meta.env?.BASE_URL === 'string' ? import.meta.env.BASE_URL : '/';
+  const path = base.endsWith('/') ? 'data/historicalPrices.json' : '/data/historicalPrices.json';
+  return `${base}${path}`.replace(/\/+/g, '/');
+}
 
 function App() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,6 +47,7 @@ function App() {
     balanceSignals: { technical: true, ai: false, other: false }
   });
   const [results, setResults] = useState<BacktestResults | null>(null);
+  const [backtestLoading, setBacktestLoading] = useState(false);
   const [assetAllocationResearchOpen, setAssetAllocationResearchOpen] = useState(false);
   const [stockPickingResearchOpen, setStockPickingResearchOpen] = useState(false);
   const [positionSizingResearchOpen, setPositionSizingResearchOpen] = useState(false);
@@ -58,20 +65,33 @@ function App() {
     }));
   };
   
-  const runBacktest = () => {
+  const runBacktest = useCallback(async () => {
     if (config.selectedStocks.length === 0) {
       alert('Please select at least one stock');
       return;
     }
+    setBacktestLoading(true);
     try {
-      const backtestResults = generateBacktest(config);
+      const url = getHistoricalDataUrl();
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Market data could not be loaded (${res.status}). Make sure you run the app with "npm run dev" or deploy with the data file in place.`);
+      }
+      const raw = await res.json();
+      const data: HistoricalPricesData = {
+        lastUpdated: raw?.lastUpdated ?? '',
+        prices: raw?.prices ?? {}
+      };
+      const backtestResults = generateBacktest(config, data);
       setResults(backtestResults);
       setCurrentPage(5);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Backtest failed. Historical price data may be missing.';
+      const message = err instanceof Error ? err.message : 'Backtest failed. Please try again.';
       alert(message);
+    } finally {
+      setBacktestLoading(false);
     }
-  };
+  }, [config]);
   
   return (
     <div style={styles.app}>
@@ -104,9 +124,10 @@ function App() {
       )}
       {currentPage === 4 && (
         <StrategyPage 
-          config={config} 
+          config={config}
           updateConfig={updateConfig} 
-          onRun={runBacktest} 
+          onRun={runBacktest}
+          backtestLoading={backtestLoading}
           onBack={() => setCurrentPage(3)}
           onStepClick={setCurrentPage}
           onOpenPositionSizingResearch={() => setPositionSizingResearchOpen(true)}

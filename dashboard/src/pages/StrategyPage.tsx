@@ -19,6 +19,7 @@ interface StrategyPageProps {
   config: Config;
   updateConfig: (key: keyof Config, value: any) => void;
   onRun: () => void;
+  backtestLoading?: boolean;
   onBack: () => void;
   onStepClick?: (step: number) => void;
   onOpenPositionSizingResearch?: () => void;
@@ -41,7 +42,7 @@ interface Strategy {
   }>;
 }
 
-export default function StrategyPage({ config, updateConfig, onRun, onBack, onStepClick, onOpenPositionSizingResearch }: StrategyPageProps) {
+export default function StrategyPage({ config, updateConfig, onRun, backtestLoading, onBack, onStepClick, onOpenPositionSizingResearch }: StrategyPageProps) {
   const [expandedStrategy, setExpandedStrategy] = useState<string | null>(null);
   
   const strategies: Strategy[] = [
@@ -430,7 +431,7 @@ export default function StrategyPage({ config, updateConfig, onRun, onBack, onSt
             : 'None (Buy & Hold)'}
         </div>
         
-        <ButtonGroup onBack={onBack} onNext={onRun} nextLabel="Run Backtest" />
+        <ButtonGroup onBack={onBack} onNext={onRun} nextLabel="Run Backtest" nextDisabled={backtestLoading} />
       </Section>
     </div>
   );

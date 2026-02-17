@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "fetch-prices": "node scripts/fetchHistoricalPrices.mjs"
+    "fetch-prices": "node scripts/fetchHistoricalPrices.mjs",
+    "fetch-prices-quick": "QUICK=1 node scripts/fetchHistoricalPrices.mjs"
   },
   "dependencies": {
     "react": "^18.2.0",

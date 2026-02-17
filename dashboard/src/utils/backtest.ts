@@ -1,11 +1,6 @@
 import { Config, BacktestResults, PeriodResult, HistoricalPricesData, TradingStrategyId } from '../types/colt-road';
 import { getPortfolioWeights } from './portfolioWeights';
 
-/** All returns are derived from this file. Run `npm run fetch-prices` to populate. No synthetic data. */
-import historicalPricesData from '../data/historicalPrices.json';
-
-const dataFile = historicalPricesData as HistoricalPricesData;
-
 const REQUIRED_INDEX = 'SPY';
 const REQUIRED_BONDS = 'AGG';
 
@@ -477,22 +472,21 @@ function runHistoricalBacktest(
 
 /**
  * Generate backtest results from actual historical prices only.
- * S&P 500: SPY. Bonds: AGG. Equity: selected stocks with configured weights.
- * Throws if historicalPrices.json is not populated (run "npm run fetch-prices").
+ * data: must be loaded from /data/historicalPrices.json (fetched by the app so site users can run regressions).
  */
-export function generateBacktest(config: Config): BacktestResults {
-  const lastUpdated = (dataFile.lastUpdated || '').trim();
-  const prices = dataFile.prices || {};
+export function generateBacktest(config: Config, data: HistoricalPricesData): BacktestResults {
+  const lastUpdated = (data.lastUpdated || '').trim();
+  const prices = data.prices || {};
 
   if (!lastUpdated) {
     throw new Error(
-      'Historical price data is not loaded. All backtest returns are required to come from actual security prices. Run "npm run fetch-prices" in the dashboard folder to download S&P 500 and bond data, then rebuild.'
+      'Historical price data is not available. Please try again in a moment, or contact the site administrator to refresh market data.'
     );
   }
 
   if (!prices[REQUIRED_INDEX] || !prices[REQUIRED_BONDS]) {
     throw new Error(
-      `Backtest requires real data for S&P 500 (${REQUIRED_INDEX}) and bonds (${REQUIRED_BONDS}). Run "npm run fetch-prices" to download historical prices.`
+      `Backtest requires market data for S&P 500 (${REQUIRED_INDEX}) and bonds (${REQUIRED_BONDS}). The site administrator may need to refresh the market data.`
     );
   }
 

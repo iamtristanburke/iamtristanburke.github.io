@@ -2,13 +2,14 @@ interface ButtonGroupProps {
   onBack?: () => void;
   onNext: () => void;
   nextLabel?: string;
+  nextDisabled?: boolean;
 }
 
-export default function ButtonGroup({ onBack, onNext, nextLabel = "Continue" }: ButtonGroupProps) {
+export default function ButtonGroup({ onBack, onNext, nextLabel = "Continue", nextDisabled }: ButtonGroupProps) {
   return (
     <div style={styles.buttonGroup} className="button-group">
-      {onBack && <button style={styles.btnSecondary} onClick={onBack}>Back</button>}
-      <button style={styles.btnPrimary} onClick={onNext}>{nextLabel}</button>
+      {onBack && <button style={styles.btnSecondary} onClick={onBack} disabled={nextDisabled}>Back</button>}
+      <button style={styles.btnPrimary} onClick={onNext} disabled={nextDisabled}>{nextDisabled ? 'Loading market data…' : nextLabel}</button>
     </div>
   );
 }
