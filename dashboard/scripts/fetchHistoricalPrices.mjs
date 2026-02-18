@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Fetches monthly adjusted-close historical prices. Writes to public/data/historicalPrices.json
+ * Fetches daily adjusted-close historical prices. Writes to public/data/historicalPrices.json
  * so the deployed site can serve it and users can run backtests.
  * Run from dashboard/: node scripts/fetchHistoricalPrices.mjs
  * Quick mode (only SPY, AGG + 15 Colt Road stocks): QUICK=1 node scripts/fetchHistoricalPrices.mjs
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PERIOD1 = '2009-01-01';
-const INTERVAL = '1mo';
+const INTERVAL = '1d';
 const DELAY_MS = 350;
 const RETRY_LIMIT = 4;
 const RETRY_BASE_DELAY_MS = 1500;
@@ -133,7 +133,7 @@ async function main() {
   }
   const payload = { lastUpdated, prices: out, missingTickers: missing };
   writeFileSync(OUT_PATH, JSON.stringify(payload, null, 0), 'utf8');
-  console.log(`Wrote ${Object.keys(out).length} tickers to ${OUT_PATH} (data as of ${lastUpdated})`);
+  console.log(`Wrote ${Object.keys(out).length} tickers to ${OUT_PATH} (${INTERVAL} data as of ${lastUpdated})`);
 }
 
 main().catch((err) => {

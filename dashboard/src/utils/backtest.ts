@@ -4,42 +4,36 @@ import { getPortfolioWeights } from './portfolioWeights';
 const REQUIRED_INDEX = 'SPY';
 const REQUIRED_BONDS = 'AGG';
 
-function getPricePointOnOrBefore(
-  dates: string[],
-  prices: number[],
-  dateStr: string
-): { price: number; date: string; index: number } | null {
-  if (dates.length === 0 || prices.length === 0) return null;
-  let i = dates.length - 1;
-  while (i >= 0 && dates[i] > dateStr) i--;
-  if (i < 0) return null;
-  return { price: prices[i], date: dates[i], index: i };
+/** Align prices to anchors using latest print on/before each anchor date (O(n)). */
+function alignPricesOnOrBefore(
+  tickerSeries: { dates: string[]; prices: number[] } | undefined,
+  anchorDates: string[]
+): (number | null)[] {
+  if (!tickerSeries || tickerSeries.dates.length === 0) return anchorDates.map(() => null);
+  const { dates, prices } = tickerSeries;
+  const out: (number | null)[] = [];
+  let j = -1;
+  for (const anchor of anchorDates) {
+    while (j + 1 < dates.length && dates[j + 1] <= anchor) j++;
+    out.push(j >= 0 ? prices[j] : null);
+  }
+  return out;
 }
 
-/** Get latest price on or before date from a series (dates ascending). */
-function getPriceOnOrBefore(dates: string[], prices: number[], dateStr: string): number | null {
-  const p = getPricePointOnOrBefore(dates, prices, dateStr);
-  return p ? p.price : null;
-}
-
-/** Build monthly return series aligned to refDates. periodStart used as previous date for first month. */
+/** Build period returns aligned to refDates. periodStart anchors the first prior observation. */
 function alignedReturns(
   tickerSeries: { dates: string[]; prices: number[] } | undefined,
   refDates: string[],
   periodStart: string
 ): (number | null)[] {
   if (!tickerSeries || tickerSeries.dates.length < 2) return refDates.map(() => null);
-  const { dates, prices } = tickerSeries;
+  const aligned = alignPricesOnOrBefore(tickerSeries, [periodStart, ...refDates]);
   const out: (number | null)[] = [];
   for (let i = 0; i < refDates.length; i++) {
-    const currPt = getPricePointOnOrBefore(dates, prices, refDates[i]);
-    const prevDate = i > 0 ? refDates[i - 1] : periodStart;
-    const prevPt = getPricePointOnOrBefore(dates, prices, prevDate);
-    if (currPt && prevPt && prevPt.price > 0) {
-      // Missing fresh prints are treated as flat carry-forward (0%) rather than forced wipeout.
-      // Delisting-specific outcomes require explicit corporate-action metadata we do not yet store.
-      if (currPt.date === prevPt.date && currPt.date < refDates[i] && prevPt.date <= prevDate) out.push(0);
-      else out.push((currPt.price - prevPt.price) / prevPt.price);
+    const prev = aligned[i];
+    const curr = aligned[i + 1];
+    if (curr != null && prev != null && prev > 0) {
+      out.push((curr - prev) / prev);
     } else {
       out.push(null);
     }
@@ -47,8 +41,8 @@ function alignedReturns(
   return out;
 }
 
-/** Get reference monthly dates from SPY in range [start, end]. */
-function getCanonicalMonthlyDates(
+/** Get reference dates from SPY in range [start, end]. */
+function getCanonicalDates(
   prices: Record<string, { dates: string[]; prices: number[] }>,
   start: string,
   end: string
@@ -75,24 +69,17 @@ function getActiveStrategyId(config: Config): TradingStrategyId {
   return 'buyAndHold';
 }
 
-/** Rebalance interval in months (monthly data). */
-function rebalanceIntervalMonths(config: Config): number {
+/** Rebalance interval in trading days (daily data). */
+function rebalanceIntervalDays(config: Config): number {
   const f = config.rebalanceFreq || 'quarterly';
-  if (f === 'quarterly') return 3;
-  return 1; // daily, weekly, monthly -> rebalance every month
+  if (f === 'daily') return 1;
+  if (f === 'weekly') return 5;
+  if (f === 'monthly') return 21;
+  if (f === 'quarterly') return 63;
+  return 63;
 }
 
 /** Price at or before dateStr for a ticker. */
-function priceAt(
-  prices: Record<string, { dates: string[]; prices: number[] }>,
-  ticker: string,
-  dateStr: string
-): number | null {
-  const series = prices[ticker];
-  if (!series) return null;
-  return getPriceOnOrBefore(series.dates, series.prices, dateStr);
-}
-
 /** Ensure weights sum to 1 and are non-negative. Auditable: no weight is dropped. */
 function normalizeWeights(
   out: Record<string, number>,
@@ -165,10 +152,10 @@ function normalizeWeights(
 }
 
 /**
- * Compute equity weights for the given month from the active trading strategy.
+ * Compute equity weights for the given date index from the active trading strategy.
  *
  * AUDIT RULES (rigorous):
- * - All prices are from getPrice(ticker, idx) where idx <= monthIndex or periodStart; no look-ahead.
+ * - All prices are from getPrice(ticker, idx) where idx <= dateIndex or periodStart; no look-ahead.
  * - Weights are non-negative and sum to 1 (enforced by normalizeWeights).
  * - Tie-breaking in sorts is deterministic (secondary sort by ticker).
  * - When a strategy has no qualifying stocks (e.g. no breakout), fallback is equal weight.
@@ -177,37 +164,32 @@ function normalizeWeights(
 function getStrategyWeights(
   strategyId: TradingStrategyId,
   config: Config,
-  prices: Record<string, { dates: string[]; prices: number[] }>,
+  alignedPricesByTicker: Record<string, (number | null)[]>,
   selectedStocks: string[],
-  canonicalDates: string[],
-  periodStart: string,
-  monthIndex: number
+  dateIndex: number
 ): Record<string, number> {
   const n = selectedStocks.length;
   if (n === 0) return {};
 
   const positionLimitPct = config.positionLimit;
   const baseWeights = getPortfolioWeights(selectedStocks, positionLimitPct);
-  if (monthIndex < 0) return baseWeights;
+  if (dateIndex < 0) return baseWeights;
 
   if (strategyId === 'buyAndHold') {
     return baseWeights;
   }
 
-  const getPrice = (ticker: string, idx: number) => {
-    const d = idx < 0 ? periodStart : canonicalDates[idx];
-    return priceAt(prices, ticker, d);
-  };
+  const getPrice = (ticker: string, idx: number) => (idx >= 0 ? alignedPricesByTicker[ticker]?.[idx] ?? null : null);
 
   if (strategyId === 'momentum') {
-    // Momentum (monthly, 12-1 style): rank by trailing return over lookback window,
-    // skipping the most recent month to avoid short-term reversal contamination.
+    // Momentum (daily, 12-1 style): rank by trailing return over lookback window,
+    // skipping the most recent ~1 month (21 trading days) to avoid reversal contamination.
     const lookbackDays = (config.strategies?.momentum as { lookbackDays?: number })?.lookbackDays ?? 252;
     const threshold = (config.strategies?.momentum as { threshold?: number })?.threshold ?? 5;
-    const lookbackMonths = Math.max(3, Math.round(lookbackDays / 21));
-    const skipMonths = 1;
-    const endIdx = monthIndex - skipMonths;
-    const startIdx = endIdx - lookbackMonths;
+    const lookback = Math.max(63, Math.round(lookbackDays));
+    const skipDays = 21;
+    const endIdx = dateIndex - skipDays;
+    const startIdx = endIdx - lookback;
     const entries: { ticker: string; ret: number }[] = [];
     for (const ticker of selectedStocks) {
       const pEnd = endIdx >= 0 ? getPrice(ticker, endIdx) : null;
@@ -235,11 +217,11 @@ function getStrategyWeights(
   if (strategyId === 'meanReversion') {
     // Mean reversion: rank by trailing return ascending (most negative = oversold, get highest weight).
     const rsiPeriod = (config.strategies?.meanReversion as { rsiPeriod?: number })?.rsiPeriod ?? 14;
-    const lookbackMonths = Math.max(2, Math.ceil(rsiPeriod / 21));
-    const startIdx = Math.max(0, monthIndex - lookbackMonths);
+    const lookbackDays = Math.max(2, Math.round(rsiPeriod));
+    const startIdx = Math.max(0, dateIndex - lookbackDays);
     const entries: { ticker: string; ret: number }[] = [];
     for (const ticker of selectedStocks) {
-      const pCurr = getPrice(ticker, monthIndex);
+      const pCurr = getPrice(ticker, dateIndex);
       const pStart = getPrice(ticker, startIdx);
       if (pCurr != null && pStart != null && pStart > 0) {
         entries.push({ ticker, ret: (pCurr - pStart) / pStart });
@@ -258,21 +240,21 @@ function getStrategyWeights(
   }
 
   if (strategyId === 'movingAverage') {
-    // Golden cross: hold only stocks where short MA (through monthIndex) > long MA (through monthIndex). Equal weight among those.
+    // Golden cross: hold only stocks where short MA (through dateIndex) > long MA (through dateIndex). Equal weight among those.
     const shortMA = (config.strategies?.movingAverage as { shortMA?: number })?.shortMA ?? 50;
     const longMA = (config.strategies?.movingAverage as { longMA?: number })?.longMA ?? 200;
-    const shortMonths = Math.max(1, Math.round(shortMA / 21));
-    const longMonths = Math.max(shortMonths + 1, Math.round(longMA / 21));
+    const shortDays = Math.max(1, Math.round(shortMA));
+    const longDays = Math.max(shortDays + 1, Math.round(longMA));
     const inSet: string[] = [];
     for (const ticker of selectedStocks) {
       let shortSum = 0, shortCount = 0;
       let longSum = 0, longCount = 0;
-      for (let k = 0; k < shortMonths && monthIndex - k >= 0; k++) {
-        const p = getPrice(ticker, monthIndex - k);
+      for (let k = 0; k < shortDays && dateIndex - k >= 0; k++) {
+        const p = getPrice(ticker, dateIndex - k);
         if (p != null) { shortSum += p; shortCount++; }
       }
-      for (let k = 0; k < longMonths && monthIndex - k >= 0; k++) {
-        const p = getPrice(ticker, monthIndex - k);
+      for (let k = 0; k < longDays && dateIndex - k >= 0; k++) {
+        const p = getPrice(ticker, dateIndex - k);
         if (p != null) { longSum += p; longCount++; }
       }
       const shortAvg = shortCount > 0 ? shortSum / shortCount : 0;
@@ -288,15 +270,15 @@ function getStrategyWeights(
   }
 
   if (strategyId === 'breakout') {
-    // Breakout: hold only stocks whose price at monthIndex is >= high over prior periodMonths (excl. current month). Equal weight among those.
+    // Breakout: hold only stocks whose price at dateIndex is >= high over prior lookback days (excl. current date). Equal weight among those.
     const period = (config.strategies?.breakout as { period?: number })?.period ?? 252;
-    const periodMonths = Math.max(1, Math.round(period / 21));
+    const lookbackDays = Math.max(1, Math.round(period));
     const inSet: string[] = [];
     for (const ticker of selectedStocks) {
-      const pCurr = getPrice(ticker, monthIndex);
+      const pCurr = getPrice(ticker, dateIndex);
       let high = 0;
-      for (let k = 1; k <= periodMonths && monthIndex - k >= 0; k++) {
-        const p = getPrice(ticker, monthIndex - k);
+      for (let k = 1; k <= lookbackDays && dateIndex - k >= 0; k++) {
+        const p = getPrice(ticker, dateIndex - k);
         if (p != null && p > high) high = p;
       }
       if (pCurr != null && high > 0 && pCurr >= high) inSet.push(ticker);
@@ -313,13 +295,13 @@ function getStrategyWeights(
     // Contrarian: weight by drawdown from lookback high. Drawdown = (high - price) / high. Only stocks with dd >= threshold get weight; weight ∝ dd.
     const drawdownThreshold = (config.strategies?.contrarian as { drawdownThreshold?: number })?.drawdownThreshold ?? 20;
     const recoveryPeriod = (config.strategies?.contrarian as { recoveryPeriod?: number })?.recoveryPeriod ?? 60;
-    const lookbackMonths = Math.max(1, Math.round(recoveryPeriod / 21));
+    const lookbackDays = Math.max(1, Math.round(recoveryPeriod));
     const oversold: { ticker: string; dd: number }[] = [];
     for (const ticker of selectedStocks) {
-      const pCurr = getPrice(ticker, monthIndex);
+      const pCurr = getPrice(ticker, dateIndex);
       let high = pCurr ?? 0;
-      for (let k = 0; k <= lookbackMonths && monthIndex - k >= 0; k++) {
-        const p = getPrice(ticker, monthIndex - k);
+      for (let k = 0; k <= lookbackDays && dateIndex - k >= 0; k++) {
+        const p = getPrice(ticker, dateIndex - k);
         if (p != null && p > high) high = p;
       }
       if (high > 0 && pCurr != null) {
@@ -341,30 +323,30 @@ function getStrategyWeights(
   }
 
   if (strategyId === 'technical') {
-    // Technical (monthly): composite score from (1) fast/slow monthly MAs,
-    // and (2) monthly Bollinger-style z-score. Inputs are already in MONTHS.
+    // Technical (daily): composite score from (1) fast/slow daily MAs,
+    // and (2) daily Bollinger-style z-score. Inputs are in trading days.
     const macdFast = (config.strategies?.technical as { macdFast?: number })?.macdFast ?? 12;
     const macdSlow = (config.strategies?.technical as { macdSlow?: number })?.macdSlow ?? 26;
     const bollingerPeriod = (config.strategies?.technical as { bollingerPeriod?: number })?.bollingerPeriod ?? 20;
-    const fastMonths = Math.max(2, Math.round(macdFast));
-    const slowMonths = Math.max(fastMonths + 1, Math.round(macdSlow));
-    const bbMonths = Math.max(2, Math.round(bollingerPeriod));
+    const fastDays = Math.max(2, Math.round(macdFast));
+    const slowDays = Math.max(fastDays + 1, Math.round(macdSlow));
+    const bbDays = Math.max(2, Math.round(bollingerPeriod));
     const entries: { ticker: string; score: number }[] = [];
     for (const ticker of selectedStocks) {
-      const pCurr = getPrice(ticker, monthIndex);
+      const pCurr = getPrice(ticker, dateIndex);
       let fastSum = 0, fastCount = 0;
       let slowSum = 0, slowCount = 0;
       let bbSum = 0, bbSq = 0, bbCount = 0;
-      for (let k = 0; k < fastMonths && monthIndex - k >= 0; k++) {
-        const p = getPrice(ticker, monthIndex - k);
+      for (let k = 0; k < fastDays && dateIndex - k >= 0; k++) {
+        const p = getPrice(ticker, dateIndex - k);
         if (p != null) { fastSum += p; fastCount++; }
       }
-      for (let k = 0; k < slowMonths && monthIndex - k >= 0; k++) {
-        const p = getPrice(ticker, monthIndex - k);
+      for (let k = 0; k < slowDays && dateIndex - k >= 0; k++) {
+        const p = getPrice(ticker, dateIndex - k);
         if (p != null) { slowSum += p; slowCount++; }
       }
-      for (let k = 0; k < bbMonths && monthIndex - k >= 0; k++) {
-        const p = getPrice(ticker, monthIndex - k);
+      for (let k = 0; k < bbDays && dateIndex - k >= 0; k++) {
+        const p = getPrice(ticker, dateIndex - k);
         if (p != null) { bbSum += p; bbSq += p * p; bbCount++; }
       }
       const fastAvg = fastCount > 0 ? fastSum / fastCount : 0;
@@ -410,7 +392,7 @@ function runHistoricalBacktest(
   const targetBond = 1 - targetEquity;
   const selectedStocks = config.selectedStocks ?? [];
   const activeStrategy = getActiveStrategyId(config);
-  const rebalanceEvery = rebalanceIntervalMonths(config);
+  const rebalanceEvery = rebalanceIntervalDays(config);
 
   const spySeries = prices[REQUIRED_INDEX];
   const aggSeries = prices[REQUIRED_BONDS];
@@ -421,7 +403,7 @@ function runHistoricalBacktest(
     throw new Error(`Backtest requires real bond data (${REQUIRED_BONDS}). Run "npm run fetch-prices" to download historical prices.`);
   }
 
-  const canonicalDates = getCanonicalMonthlyDates(prices, period.startDate, period.endDate);
+  const canonicalDates = getCanonicalDates(prices, period.startDate, period.endDate);
   if (canonicalDates.length < 2) {
     throw new Error(
       `Insufficient ${REQUIRED_INDEX} data for ${period.label} (${period.startDate}–${period.endDate}). Run "npm run fetch-prices" to refresh.`
@@ -432,8 +414,10 @@ function runHistoricalBacktest(
   const aggReturns = alignedReturns(aggSeries, canonicalDates, period.startDate);
 
   const stockReturnsByTicker: Record<string, (number | null)[]> = {};
+  const alignedPricesByTicker: Record<string, (number | null)[]> = {};
   for (const ticker of selectedStocks) {
     const series = prices[ticker];
+    alignedPricesByTicker[ticker] = alignPricesOnOrBefore(series, canonicalDates);
     const ret = alignedReturns(series, canonicalDates, period.startDate);
     stockReturnsByTicker[ticker] = ret;
   }
@@ -459,22 +443,20 @@ function runHistoricalBacktest(
   let currentWeights = getStrategyWeights(
     activeStrategy,
     config,
-    prices,
+    alignedPricesByTicker,
     selectedStocks,
-    canonicalDates,
-    period.startDate,
     -1
   );
   // Tax buckets by holding period proxy:
-  // ST bucket (<12 months) and LT bucket (>=12 months).
+  // ST bucket (<~1y) and LT bucket (>=~1y) using daily approximation.
   let holdingsMarketST: Record<string, number> = {};
   let holdingsCostST: Record<string, number> = {};
   let holdingsMarketLT: Record<string, number> = {};
   let holdingsCostLT: Record<string, number> = {};
-  const isRebalanceMonth = (i: number) => i === 0 || (rebalanceEvery > 1 && i % rebalanceEvery === 0);
+  const isRebalanceStep = (i: number) => i === 0 || (rebalanceEvery > 1 && i % rebalanceEvery === 0);
 
   for (let i = 0; i < canonicalDates.length; i++) {
-    if (isRebalanceMonth(i)) {
+    if (isRebalanceStep(i)) {
       const equityStart = portfolioValue * targetEquity;
       let tradedNotional = 0;
       let orders = 0;
@@ -583,7 +565,7 @@ function runHistoricalBacktest(
       );
     }
 
-    // Missing stock return is treated as 0% for the month.
+    // Missing stock return is treated as 0% for the period.
     for (const ticker of selectedStocks) {
       const r = stockReturnsByTicker[ticker][i];
       const ret = 1 + (r ?? 0);
@@ -601,25 +583,23 @@ function runHistoricalBacktest(
     sp500Value *= 1 + spyRet;
     balanced6040Value *= 1 + balRet;
     for (const ticker of selectedStocks) {
-      // Monthly aging approximation: move 1/12 of ST bucket to LT bucket.
-      const moveMkt = (holdingsMarketST[ticker] ?? 0) / 12;
-      const moveCost = (holdingsCostST[ticker] ?? 0) / 12;
+      // Daily aging approximation: move 1/252 of ST bucket to LT bucket.
+      const moveMkt = (holdingsMarketST[ticker] ?? 0) / 252;
+      const moveCost = (holdingsCostST[ticker] ?? 0) / 252;
       holdingsMarketST[ticker] = Math.max(0, (holdingsMarketST[ticker] ?? 0) - moveMkt);
       holdingsCostST[ticker] = Math.max(0, (holdingsCostST[ticker] ?? 0) - moveCost);
       holdingsMarketLT[ticker] = (holdingsMarketLT[ticker] ?? 0) + moveMkt;
       holdingsCostLT[ticker] = (holdingsCostLT[ticker] ?? 0) + moveCost;
     }
 
-    const nextMonthIndex = i + 1;
-    // Compute next rebalance weights using information available through the month that just ended.
-    if (nextMonthIndex < canonicalDates.length && isRebalanceMonth(nextMonthIndex)) {
+    const nextIndex = i + 1;
+    // Compute next rebalance weights using information available through the date that just ended.
+    if (nextIndex < canonicalDates.length && isRebalanceStep(nextIndex)) {
       currentWeights = getStrategyWeights(
         activeStrategy,
         config,
-        prices,
+        alignedPricesByTicker,
         selectedStocks,
-        canonicalDates,
-        period.startDate,
         i
       );
     }

@@ -62,7 +62,7 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
         threshold: 5
       },
       paramFields: [
-        { key: 'lookbackDays', label: 'Lookback Period (days)', min: 63, max: 504, default: 252, explain: 'Monthly backtest uses this as roughly 12 months by default (12-1 momentum style).' },
+        { key: 'lookbackDays', label: 'Lookback Period (days)', min: 63, max: 504, default: 252, explain: 'Daily backtest uses this directly (default 252 trading days, with a 21-day skip for 12-1 momentum).' },
         { key: 'threshold', label: 'Momentum Threshold (%)', min: 0, max: 30, default: 5, explain: 'Only include stocks whose lookback return is at least this threshold.' }
       ]
     },
@@ -133,14 +133,14 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
       enabled: config.strategies?.technical?.enabled || false,
       params: config.strategies?.technical || {
         enabled: false,
-        macdFast: 6,
-        macdSlow: 12,
-        bollingerPeriod: 12
+        macdFast: 12,
+        macdSlow: 26,
+        bollingerPeriod: 20
       },
       paramFields: [
-        { key: 'macdFast', label: 'Fast MA Lookback (months)', min: 2, max: 36, default: 6, explain: 'Monthly candles: medium-term trend window.' },
-        { key: 'macdSlow', label: 'Slow MA Lookback (months)', min: 3, max: 60, default: 12, explain: 'Monthly candles: long-term trend window.' },
-        { key: 'bollingerPeriod', label: 'Bollinger Lookback (months)', min: 2, max: 60, default: 12, explain: 'Monthly candles: 12–20 months are typical for robust trend context.' }
+        { key: 'macdFast', label: 'Fast MA Lookback (days)', min: 2, max: 100, default: 12, explain: 'Daily candles: fast trend window.' },
+        { key: 'macdSlow', label: 'Slow MA Lookback (days)', min: 3, max: 300, default: 26, explain: 'Daily candles: slower trend confirmation.' },
+        { key: 'bollingerPeriod', label: 'Bollinger Lookback (days)', min: 2, max: 120, default: 20, explain: 'Daily candles: 20 trading days is the common default.' }
       ]
     }
   ];
