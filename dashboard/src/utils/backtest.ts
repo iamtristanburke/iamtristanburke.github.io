@@ -370,7 +370,7 @@ function runHistoricalBacktest(
   }
   if (missing.length > 0) {
     throw new Error(
-      `Backtest requires real price history for every selected stock. Missing or incomplete data for: ${missing.join(', ')}. Run "npm run fetch-prices" to download S&P 500 historical prices.`
+      `Backtest requires price history for every selected stock. Missing or incomplete data for: ${missing.join(', ')}. This site's data may only include the 15 Colt Road Best Ideas—please limit your selection to those stocks on the previous step, or the site administrator can run "npm run fetch-prices" and redeploy for full S&P 500 coverage.`
     );
   }
 

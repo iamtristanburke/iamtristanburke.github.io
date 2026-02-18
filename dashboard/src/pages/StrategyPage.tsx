@@ -430,7 +430,9 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
             ? strategies.filter(s => s.params.enabled).map(s => s.name).join(', ')
             : 'None (Buy & Hold)'}
         </div>
-        
+        <p style={{ marginTop: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#6d6658' }}>
+          Backtest uses pre-loaded data for the 15 Colt Road Best Ideas; other stocks may not have data on this site.
+        </p>
         <ButtonGroup onBack={onBack} onNext={onRun} nextLabel="Run Backtest" nextDisabled={backtestLoading} />
       </Section>
     </div>
