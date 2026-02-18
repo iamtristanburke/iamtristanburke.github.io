@@ -100,6 +100,13 @@ async function main() {
   }
 
   const lastUpdated = new Date().toISOString().slice(0, 10);
+  if (process.env.QUICK === '1' || process.argv.includes('--quick')) {
+    const missing = tickers.filter((s) => !out[s] || (out[s].dates && out[s].dates.length < 2));
+    if (missing.length > 0) {
+      console.error('Quick mode requires all tickers. Missing or incomplete:', missing.join(', '));
+      process.exit(1);
+    }
+  }
   const payload = { lastUpdated, prices: out };
   writeFileSync(OUT_PATH, JSON.stringify(payload, null, 0), 'utf8');
   console.log(`Wrote ${Object.keys(out).length} tickers to ${OUT_PATH} (data as of ${lastUpdated})`);
