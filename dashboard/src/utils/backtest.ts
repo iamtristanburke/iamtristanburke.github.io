@@ -357,21 +357,11 @@ function runHistoricalBacktest(
   const spyReturns = alignedReturns(spySeries, canonicalDates, period.startDate);
   const aggReturns = alignedReturns(aggSeries, canonicalDates, period.startDate);
 
-  const missing: string[] = [];
   const stockReturnsByTicker: Record<string, (number | null)[]> = {};
   for (const ticker of selectedStocks) {
     const series = prices[ticker];
     const ret = alignedReturns(series, canonicalDates, period.startDate);
     stockReturnsByTicker[ticker] = ret;
-    const hasGap = ret.some((r) => r === null);
-    if (!series || series.dates.length < 2 || hasGap) {
-      missing.push(ticker);
-    }
-  }
-  if (missing.length > 0) {
-    throw new Error(
-      `Backtest requires price history for every selected stock. Missing or incomplete data for: ${missing.join(', ')}. This site's data may only include the 15 Colt Road Best Ideas—please limit your selection to those stocks on the previous step, or the site administrator can run "npm run fetch-prices" and redeploy for full S&P 500 coverage.`
-    );
   }
 
   const data = {
@@ -414,13 +404,20 @@ function runHistoricalBacktest(
     }
 
     let equityRet = 0;
+    let activeWeightSum = 0;
     for (const ticker of selectedStocks) {
       const r = stockReturnsByTicker[ticker][i];
       const w = currentWeights[ticker] ?? 0;
-      if (r === null) {
-        throw new Error(`Missing return for ${ticker} on ${date}. Backtest uses only actual price data.`);
+      if (r !== null) {
+        equityRet += w * r;
+        activeWeightSum += w;
       }
-      equityRet += w * r;
+    }
+    if (activeWeightSum > 0 && activeWeightSum < 1) {
+      equityRet = equityRet / activeWeightSum;
+    } else if (activeWeightSum === 0) {
+      // If no selected stock has data for this month, use broad equity proxy to keep the backtest running.
+      equityRet = spyRet;
     }
 
     const portRet = equityRet * targetEquity + aggRet * targetBond;
