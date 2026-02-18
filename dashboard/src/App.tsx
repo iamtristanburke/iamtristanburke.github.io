@@ -81,6 +81,8 @@ function App() {
         lastUpdated: raw?.lastUpdated ?? '',
         prices: raw?.prices ?? {}
       };
+      // Yield once so the loading state paints before heavy backtest math starts.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
       const backtestResults = generateBacktest(config, data);
       setResults(backtestResults);
       setCurrentPage(5);

@@ -32,6 +32,13 @@ function alignedReturns(
   for (let i = 0; i < refDates.length; i++) {
     const prev = aligned[i];
     const curr = aligned[i + 1];
+    // For the first in-range point, a prior anchor can be missing when the period
+    // starts before the first available trading day (e.g., 2009-01-01 holiday).
+    // Initialize that first return at 0% so the backtest can proceed deterministically.
+    if (i === 0 && curr != null && prev == null) {
+      out.push(0);
+      continue;
+    }
     if (curr != null && prev != null && prev > 0) {
       out.push((curr - prev) / prev);
     } else {
@@ -204,11 +211,12 @@ function getStrategyWeights(
     const thresholdPct = Math.max(0, threshold) / 100;
     const included = entries.filter((e) => e.ret >= thresholdPct);
     const ranked = included.length > 0 ? included : entries;
-    const rank = (t: string) => ranked.findIndex((e) => e.ticker === t) + 1;
     const rankSum = (ranked.length * (ranked.length + 1)) / 2;
+    const rankByTicker = new Map<string, number>();
+    for (let idx = 0; idx < ranked.length; idx++) rankByTicker.set(ranked[idx].ticker, idx + 1);
     const out: Record<string, number> = {};
     for (const ticker of selectedStocks) {
-      const r = rank(ticker);
+      const r = rankByTicker.get(ticker) ?? 0;
       out[ticker] = r > 0 ? (ranked.length - r + 1) / rankSum : 0;
     }
     return normalizeWeights(out, selectedStocks, positionLimitPct);
@@ -230,11 +238,13 @@ function getStrategyWeights(
       }
     }
     entries.sort((a, b) => a.ret - b.ret || a.ticker.localeCompare(b.ticker));
-    const rank = (t: string) => entries.findIndex((e) => e.ticker === t) + 1;
     const rankSum = (n * (n + 1)) / 2;
+    const rankByTicker = new Map<string, number>();
+    for (let idx = 0; idx < entries.length; idx++) rankByTicker.set(entries[idx].ticker, idx + 1);
     const out: Record<string, number> = {};
     for (const ticker of selectedStocks) {
-      out[ticker] = (n - rank(ticker) + 1) / rankSum;
+      const rank = rankByTicker.get(ticker) ?? n;
+      out[ticker] = (n - rank + 1) / rankSum;
     }
     return normalizeWeights(out, selectedStocks, positionLimitPct);
   }
@@ -263,8 +273,9 @@ function getStrategyWeights(
     }
     const out: Record<string, number> = {};
     const w = inSet.length > 0 ? 1 / inSet.length : 1 / n;
+    const inSetLookup = new Set(inSet);
     for (const ticker of selectedStocks) {
-      out[ticker] = inSet.includes(ticker) ? w : 0;
+      out[ticker] = inSetLookup.has(ticker) ? w : 0;
     }
     return normalizeWeights(out, selectedStocks, positionLimitPct);
   }
@@ -285,8 +296,9 @@ function getStrategyWeights(
     }
     const out: Record<string, number> = {};
     const w = inSet.length > 0 ? 1 / inSet.length : 1 / n;
+    const inSetLookup = new Set(inSet);
     for (const ticker of selectedStocks) {
-      out[ticker] = inSet.includes(ticker) ? w : 0;
+      out[ticker] = inSetLookup.has(ticker) ? w : 0;
     }
     return normalizeWeights(out, selectedStocks, positionLimitPct);
   }
@@ -312,9 +324,11 @@ function getStrategyWeights(
     const out: Record<string, number> = {};
     if (oversold.length > 0) {
       const totalDd = oversold.reduce((s, x) => s + x.dd, 0);
+      const ddByTicker = new Map<string, number>();
+      for (const x of oversold) ddByTicker.set(x.ticker, x.dd);
       for (const ticker of selectedStocks) {
-        const o = oversold.find((x) => x.ticker === ticker);
-        out[ticker] = o ? o.dd / totalDd : 0;
+        const dd = ddByTicker.get(ticker) ?? 0;
+        out[ticker] = dd > 0 ? dd / totalDd : 0;
       }
     } else {
       for (const t of selectedStocks) out[t] = 1 / n;
@@ -367,11 +381,13 @@ function getStrategyWeights(
       entries.push({ ticker, score });
     }
     entries.sort((a, b) => b.score - a.score || a.ticker.localeCompare(b.ticker));
-    const rank = (t: string) => entries.findIndex((e) => e.ticker === t) + 1;
     const rankSum = (n * (n + 1)) / 2;
+    const rankByTicker = new Map<string, number>();
+    for (let idx = 0; idx < entries.length; idx++) rankByTicker.set(entries[idx].ticker, idx + 1);
     const out: Record<string, number> = {};
     for (const ticker of selectedStocks) {
-      out[ticker] = (n - rank(ticker) + 1) / rankSum;
+      const rank = rankByTicker.get(ticker) ?? n;
+      out[ticker] = (n - rank + 1) / rankSum;
     }
     return normalizeWeights(out, selectedStocks, positionLimitPct);
   }
