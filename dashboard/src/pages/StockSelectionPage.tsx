@@ -69,7 +69,7 @@ export default function StockSelectionPage({ config, updateConfig: _updateConfig
     const key = sortBy;
     let aVal: string | number = a[key] as string | number;
     let bVal: string | number = b[key] as string | number;
-    const numericKeys: (keyof Stock)[] = ['marketCap', 'pe', 'divYield'];
+    const numericKeys: (keyof Stock)[] = ['marketCap', 'pe', 'divYield', 'revenueGrowth3y'];
     if (numericKeys.includes(key)) {
       const aNum = Number(aVal) || 0;
       const bNum = Number(bVal) || 0;
@@ -205,6 +205,9 @@ export default function StockSelectionPage({ config, updateConfig: _updateConfig
                 <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('divYield')}>
                   Div Yield {sortBy === 'divYield' && (sortDir === 'asc' ? '▲' : '▼')}
                 </th>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('revenueGrowth3y')}>
+                  3Y Rev Growth {sortBy === 'revenueGrowth3y' && (sortDir === 'asc' ? '▲' : '▼')}
+                </th>
                 <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => handleSort('sector')}>
                   Sector {sortBy === 'sector' && (sortDir === 'asc' ? '▲' : '▼')}
                 </th>
@@ -232,8 +235,13 @@ export default function StockSelectionPage({ config, updateConfig: _updateConfig
                 </td>
                   <td style={styles.td}>{stock.name}</td>
                   <td style={styles.td}>{formatMarketCap(stock.marketCap)}</td>
-                  <td style={styles.td}>{stock.pe.toFixed(1)}</td>
+                  <td style={styles.td}>{stock.pe > 0 ? stock.pe.toFixed(1) : '—'}</td>
                   <td style={styles.td}>{stock.divYield.toFixed(1)}%</td>
+                  <td style={styles.td}>
+                    {stock.revenueGrowth3y != null && Number.isFinite(stock.revenueGrowth3y)
+                      ? `${stock.revenueGrowth3y.toFixed(1)}%`
+                      : '—'}
+                  </td>
                   <td style={styles.td}>{stock.sector}</td>
                 </tr>
               ))}

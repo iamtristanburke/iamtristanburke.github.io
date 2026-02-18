@@ -44,6 +44,30 @@ interface ComparisonCardProps {
   highlight?: boolean;
 }
 
+interface BearMarketWindow {
+  label: string;
+  peakDate: string;
+  troughDate: string;
+  durationLabel: string;
+}
+
+const DISPLAY_DATE = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric'
+});
+
+function formatBearDate(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? dateStr : DISPLAY_DATE.format(d);
+}
+
+function formatPctCell(value: number | null, decimals: number = 1): string {
+  if (value == null || !Number.isFinite(value)) return '—';
+  const abs = formatNumber(Math.abs(value), decimals);
+  return value < 0 ? `(${abs}%)` : `${abs}%`;
+}
+
 function ComparisonCard({ title, totalReturn, annualizedReturn, finalValue, highlight }: ComparisonCardProps) {
   return (
     <div style={{
@@ -76,6 +100,20 @@ function ComparisonCard({ title, totalReturn, annualizedReturn, finalValue, high
 }
 
 const STRATEGY_IDS: TradingStrategyId[] = ['buyAndHold', 'momentum', 'meanReversion', 'movingAverage', 'breakout', 'contrarian', 'technical'];
+const BEAR_MARKETS: BearMarketWindow[] = [
+  {
+    label: 'COVID-19 Crash (2020)',
+    peakDate: '2020-02-19',
+    troughDate: '2020-03-23',
+    durationLabel: '~1 month'
+  },
+  {
+    label: 'Inflation & Rate Shock (2022)',
+    peakDate: '2022-01-03',
+    troughDate: '2022-10-12',
+    durationLabel: '~9 months'
+  }
+];
 
 export default function ResultsPage({ results, config, onRestart, onStepClick }: ResultsPageProps) {
   const [selectedPeriod, setSelectedPeriod] = useState(0);
@@ -183,8 +221,17 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
     const allValues = [...portfolio, ...sp500, ...balanced].filter((v) => typeof v === 'number');
     const dataMin = allValues.length ? Math.min(...allValues) : 0;
     const dataMax = allValues.length ? Math.max(...allValues) : 1;
-    const yMin = Math.max(0, Math.floor(dataMin * 0.95 / 1000) * 1000);
-    const yMax = Math.ceil(dataMax * 1.05 / 1000) * 1000;
+    const paddedMin = Math.max(0, dataMin * 0.95);
+    const paddedMax = dataMax * 1.05;
+    const span = Math.max(1, paddedMax - paddedMin);
+    // Choose a stable "nice" step and snap min/max to it so tick spacing is uniform.
+    const roughStep = span / 6;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
+    const normalized = roughStep / magnitude;
+    const niceNormalized = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+    const yStep = niceNormalized * magnitude;
+    const yMin = Math.floor(paddedMin / yStep) * yStep;
+    const yMax = Math.ceil(paddedMax / yStep) * yStep;
 
     const data = {
       labels: chartIndices.map((i) => dates[i]),
@@ -245,6 +292,7 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
           max: yMax,
           grid: { color: 'rgba(168, 155, 132, 0.25)' },
           ticks: {
+            stepSize: yStep,
             callback(this: unknown, value: string | number) {
               if (typeof value === 'number') return formatCurrency(value / 1000, 0) + 'K';
               return value;
@@ -256,6 +304,38 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
 
     return { chartData: data, chartOptions: options };
   }, [currentPeriod, selectedPeriod]);
+
+  const bearMarketRows = useMemo(() => {
+    const { dates, portfolioValues, sp500Values, balanced6040Values } = currentPeriod.data;
+
+    const getValueOnOrBefore = (targetDate: string, values: number[]) => {
+      for (let i = dates.length - 1; i >= 0; i--) {
+        if (dates[i] <= targetDate) return values[i];
+      }
+      return null;
+    };
+
+    const calcReturnPct = (peak: number | null, trough: number | null) => {
+      if (peak == null || trough == null || peak <= 0) return null;
+      return ((trough - peak) / peak) * 100;
+    };
+
+    return BEAR_MARKETS.map((mkt) => {
+      const portPeak = getValueOnOrBefore(mkt.peakDate, portfolioValues);
+      const portTrough = getValueOnOrBefore(mkt.troughDate, portfolioValues);
+      const spPeak = getValueOnOrBefore(mkt.peakDate, sp500Values);
+      const spTrough = getValueOnOrBefore(mkt.troughDate, sp500Values);
+      const balPeak = getValueOnOrBefore(mkt.peakDate, balanced6040Values);
+      const balTrough = getValueOnOrBefore(mkt.troughDate, balanced6040Values);
+
+      return {
+        ...mkt,
+        portfolioReturnPct: calcReturnPct(portPeak, portTrough),
+        sp500ReturnPct: calcReturnPct(spPeak, spTrough),
+        balancedReturnPct: calcReturnPct(balPeak, balTrough)
+      };
+    });
+  }, [currentPeriod]);
   
   return (
     <div style={styles.container} className="page-container">
@@ -314,6 +394,45 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
           <div style={styles.chartWrapper}>
             <Line data={chartData} options={chartOptions} />
           </div>
+        </div>
+
+        <h3 style={styles.historicalSectionTitle}>Bear Market Comparison (Peak to Trough)</h3>
+        <p style={styles.sectionDesc}>
+          Peak-to-trough performance for your portfolio versus S&amp;P 500 and 60/40 during the two major drawdowns in this backtest window.
+        </p>
+        <div style={styles.bearTableWrap}>
+          <table style={styles.bearTable}>
+            <thead>
+              <tr style={styles.bearTableHeader}>
+                <th style={styles.bearTh}>Bear Market</th>
+                <th style={{ ...styles.bearTh, ...styles.bearWindowCol }}>Window</th>
+                <th style={{ ...styles.bearTh, ...styles.bearDurationCol }}>Duration</th>
+                <th style={{ ...styles.bearTh, ...styles.bearMetricCol }}>Your Portfolio</th>
+                <th style={{ ...styles.bearTh, ...styles.bearMetricCol }}>S&amp;P 500</th>
+                <th style={{ ...styles.bearTh, ...styles.bearMetricCol }}>60/40</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bearMarketRows.map((row) => (
+                <tr key={row.label} style={styles.bearRow}>
+                  <td style={styles.bearTd}>{row.label}</td>
+                  <td style={{ ...styles.bearTd, ...styles.bearWindowCol }}>
+                    {formatBearDate(row.peakDate)} to {formatBearDate(row.troughDate)}
+                  </td>
+                  <td style={{ ...styles.bearTd, ...styles.bearDurationCol }}>{row.durationLabel}</td>
+                  <td style={{ ...styles.bearTd, ...styles.bearRight }}>
+                    {formatPctCell(row.portfolioReturnPct)}
+                  </td>
+                  <td style={{ ...styles.bearTd, ...styles.bearRight }}>
+                    {formatPctCell(row.sp500ReturnPct)}
+                  </td>
+                  <td style={{ ...styles.bearTd, ...styles.bearRight }}>
+                    {formatPctCell(row.balancedReturnPct)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
         
         <div style={styles.buttonGroup} className="button-group">
@@ -504,6 +623,50 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: '2rem',
     paddingBottom: '1rem',
     borderBottom: '2px solid #a98a4f'
+  },
+  bearTableWrap: {
+    marginBottom: '2rem',
+    overflowX: 'auto'
+  },
+  bearTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    border: '2px solid #d9d2c1',
+    background: '#fdfcfa'
+  },
+  bearTableHeader: {
+    background: '#f0ede5',
+    borderBottom: '2px solid #d9d2c1'
+  },
+  bearTh: {
+    padding: '0.7rem 0.9rem',
+    textAlign: 'center',
+    verticalAlign: 'bottom',
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    color: '#0f1f35'
+  },
+  bearRow: {
+    borderBottom: '1px solid #d9d2c1'
+  },
+  bearTd: {
+    padding: '0.8rem 0.9rem',
+    fontSize: '0.92rem',
+    color: '#2c2c2c'
+  },
+  bearWindowCol: {
+    minWidth: '220px'
+  },
+  bearDurationCol: {
+    minWidth: '90px'
+  },
+  bearMetricCol: {
+    minWidth: '110px'
+  },
+  bearRight: {
+    textAlign: 'right'
   },
   buttonGroup: {
     display: 'flex',

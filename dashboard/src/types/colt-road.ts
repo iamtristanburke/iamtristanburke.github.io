@@ -4,6 +4,8 @@ export interface Stock {
   marketCap: number;
   pe: number;
   divYield: number;
+  /** 3-year revenue CAGR in percent (null when unavailable). */
+  revenueGrowth3y?: number | null;
   sector: string;
   index: 'SP500' | 'RUSSELL2000';
 }

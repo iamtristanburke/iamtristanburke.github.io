@@ -58,12 +58,12 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
       enabled: config.strategies?.momentum?.enabled || false,
       params: config.strategies?.momentum || {
         enabled: false,
-        lookbackDays: 20,
+        lookbackDays: 252,
         threshold: 5
       },
       paramFields: [
-        { key: 'lookbackDays', label: 'Lookback Period (days)', min: 5, max: 200, default: 20, explain: 'How many days to measure performance. Shorter = more reactive, Longer = more stable' },
-        { key: 'threshold', label: 'Momentum Threshold (%)', min: 1, max: 20, default: 5, explain: 'Only buy if stock outperformed by this % or more' }
+        { key: 'lookbackDays', label: 'Lookback Period (days)', min: 63, max: 504, default: 252, explain: 'Monthly backtest uses this as roughly 12 months by default (12-1 momentum style).' },
+        { key: 'threshold', label: 'Momentum Threshold (%)', min: 0, max: 30, default: 5, explain: 'Only include stocks whose lookback return is at least this threshold.' }
       ]
     },
     {
@@ -133,14 +133,14 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
       enabled: config.strategies?.technical?.enabled || false,
       params: config.strategies?.technical || {
         enabled: false,
-        macdFast: 12,
-        macdSlow: 26,
-        bollingerPeriod: 20
+        macdFast: 6,
+        macdSlow: 12,
+        bollingerPeriod: 12
       },
       paramFields: [
-        { key: 'macdFast', label: 'MACD Fast Period', min: 5, max: 20, default: 12, explain: 'Fast EMA period for MACD. 12 is standard' },
-        { key: 'macdSlow', label: 'MACD Slow Period', min: 20, max: 40, default: 26, explain: 'Slow EMA period for MACD. 26 is standard' },
-        { key: 'bollingerPeriod', label: 'Bollinger Period', min: 10, max: 30, default: 20, explain: 'Days for Bollinger Bands calculation. 20 is standard' }
+        { key: 'macdFast', label: 'Fast MA Lookback (months)', min: 2, max: 36, default: 6, explain: 'Monthly candles: medium-term trend window.' },
+        { key: 'macdSlow', label: 'Slow MA Lookback (months)', min: 3, max: 60, default: 12, explain: 'Monthly candles: long-term trend window.' },
+        { key: 'bollingerPeriod', label: 'Bollinger Lookback (months)', min: 2, max: 60, default: 12, explain: 'Monthly candles: 12–20 months are typical for robust trend context.' }
       ]
     }
   ];
@@ -337,7 +337,7 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
               </thead>
               <tbody>
                 {(() => {
-                  const weights = getPortfolioWeights(config.selectedStocks);
+                  const weights = getPortfolioWeights(config.selectedStocks, config.positionLimit);
                   const equityPct = config.targetEquityPct / 100;
                   const debtPct = 1 - equityPct;
                   return (
