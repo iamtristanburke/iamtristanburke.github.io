@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Config } from '../types/colt-road';
 import ProgressBar from '../components/ProgressBar';
 import Section from '../components/Section';
@@ -43,8 +42,6 @@ interface Strategy {
 }
 
 export default function StrategyPage({ config, updateConfig, onRun, backtestLoading, onBack, onStepClick, onOpenPositionSizingResearch }: StrategyPageProps) {
-  const [expandedStrategy, setExpandedStrategy] = useState<string | null>(null);
-  
   const strategies: Strategy[] = [
     {
       id: 'buyAndHold',
@@ -186,7 +183,7 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
           <h3 style={styles.subsectionTitleInRow}>Colt Road&apos;s Perspective</h3>
         </div>
         <p style={styles.perspectiveParagraph}>
-          The best style for most investors is <strong>low-turnover, conviction-weighted position sizing</strong>: hold a concentrated list of high-quality names (like our 15 Best Ideas), size positions by conviction rather than equal-weight, and trade only when the thesis breaks or allocation targets drift. Technical and algorithmic strategies can add value for active traders, but they increase turnover and taxes; we recommend using them sparingly or for a sleeve of the portfolio, not the core.
+          The best style for most investors is <strong>low-turnover, disciplined portfolio management</strong>: hold a focused list of high-quality names, rebalance thoughtfully, and trade only when the thesis breaks or allocation targets drift. Technical and algorithmic strategies can add value for active traders, but they increase turnover and taxes; we recommend using them sparingly or for a sleeve of the portfolio, not the core.
         </p>
 
         {onOpenPositionSizingResearch && (
@@ -195,111 +192,21 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
           </button>
         )}
 
-        <h3 style={styles.subsectionTitle}>Portfolio Sizing</h3>
-        <p style={styles.sectionDesc}>
-          Choose how to weight the stocks in your equity sleeve (scoped in steps 1 and 2). Weights apply to the exported portfolio below.
-        </p>
-        <div style={styles.optionRow}>
-          <label style={styles.checkLabel}>
-            <input
-              type="radio"
-              name="portfolioSizing"
-              checked={(config.portfolioSizingMethod ?? 'equalWeight') === 'equalWeight'}
-              onChange={() => updateConfig('portfolioSizingMethod', 'equalWeight')}
-              style={styles.paramCheckbox}
-            />
-            Equal Weighting
-          </label>
-          <label style={styles.checkLabel}>
-            <input
-              type="radio"
-              name="portfolioSizing"
-              checked={(config.portfolioSizingMethod ?? 'equalWeight') === 'coltRoadConviction'}
-              onChange={() => updateConfig('portfolioSizingMethod', 'coltRoadConviction')}
-              style={styles.paramCheckbox}
-            />
-            Colt Road Conviction Weighting
-          </label>
-          <label style={styles.checkLabel}>
-            <input
-              type="radio"
-              name="portfolioSizing"
-              checked={(config.portfolioSizingMethod ?? 'equalWeight') === 'customized'}
-              onChange={() => updateConfig('portfolioSizingMethod', 'customized')}
-              style={styles.paramCheckbox}
-            />
-            Customized Weighting
-          </label>
-        </div>
-
-        <h4 style={styles.portfolioExportTitle}>Exported Portfolio (from steps 1 &amp; 2)</h4>
-        <p style={styles.sectionDesc}>
-          Asset allocation from step 1: <strong>{formatPercent(config.targetEquityPct / 100)}</strong> equities, <strong>{formatPercent((100 - config.targetEquityPct) / 100)}</strong> debt. Equity sleeve below is weighted by the option selected above.
-        </p>
-        <div style={styles.portfolioExportWrap}>
-          <table style={styles.portfolioTable}>
-            <thead>
-              <tr>
-                <th style={styles.portfolioTh}>Ticker</th>
-                <th style={styles.portfolioTh}>Company</th>
-                <th style={{ ...styles.portfolioTh, ...styles.portfolioRight }}>Weight (of equity)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                const method = config.portfolioSizingMethod ?? 'equalWeight';
-                const weights = getPortfolioWeights(method, config.selectedStocks, config.customWeights);
-                return config.selectedStocks.map((ticker) => {
-                  const stock = ALL_STOCKS.find((s) => s.ticker === ticker);
-                  const pct = (weights[ticker] ?? 0) * 100;
-                  return (
-                    <tr key={ticker}>
-                      <td style={styles.portfolioTd}>{ticker}</td>
-                      <td style={styles.portfolioTd}>{stock?.name ?? ticker}</td>
-                      <td style={{ ...styles.portfolioTd, ...styles.portfolioRight }}>
-                        {method === 'customized' ? (
-                          <span style={styles.portfolioWeightCell}>
-                            <input
-                              type="number"
-                              min={0}
-                              max={100}
-                              step={0.5}
-                              value={pct.toFixed(1)}
-                              onChange={(e) => {
-                                const v = parseFloat(e.target.value) / 100;
-                                const next = { ...(config.customWeights ?? {}), [ticker]: isNaN(v) ? 0 : v };
-                                updateConfig('customWeights', next);
-                              }}
-                              style={styles.portfolioWeightInput}
-                            />
-                            <span style={styles.portfolioWeightSuffix}>%</span>
-                          </span>
-                        ) : (
-                          formatPercent(weights[ticker] ?? 0)
-                        )}
-                      </td>
-                    </tr>
-                  );
-                });
-              })()}
-            </tbody>
-          </table>
-        </div>
-        {(config.portfolioSizingMethod ?? 'equalWeight') === 'coltRoadConviction' && (
-          <p style={styles.hint}>Weights based on Colt Road&apos;s attractiveness score (0–100) from the Structural Alpha approach in step 2: Value (EBIT/EV), Quality (GP/Assets), Yield (Shareholder Yield), and thematic fit. Higher score = higher weight.</p>
-        )}
-
         <h3 style={styles.subsectionTitle}>Trading Strategy</h3>
         <p style={styles.sectionDesc}>
           Select one strategy. The backtest will apply it retroactively to historical prices.
         </p>
         <div style={styles.strategyGrid} className="strategy-grid">
-          {strategies.map(strategy => (
+          {strategies.map(strategy => {
+            const isActive = !!strategy.params.enabled;
+            return (
             <div key={strategy.id}>
               <div 
                 style={{
                   ...styles.strategyCard,
-                  ...(strategy.params.enabled ? styles.strategyCardActive : {})
+                  borderColor: isActive ? '#2d4a2b' : '#a98a4f',
+                  background: isActive ? '#f5f2e9' : 'white',
+                  boxShadow: isActive ? '0 4px 12px rgba(45, 74, 43, 0.2)' : 'none'
                 }}
               >
                 <div style={styles.strategyHeader} onClick={() => selectStrategy(strategy.id)}>
@@ -315,50 +222,41 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
                 <p style={styles.strategyDesc}>{strategy.description}</p>
                 
                 {strategy.params.enabled && strategy.paramFields.length > 0 && (
-                  <div style={styles.strategyParams}>
-                    <button 
-                      style={styles.configButton}
-                      onClick={() => setExpandedStrategy(expandedStrategy === strategy.id ? null : strategy.id)}
-                    >
-                      {expandedStrategy === strategy.id ? '▼ Hide Parameters' : '▶ Configure Parameters'}
-                    </button>
-                    
-                    {expandedStrategy === strategy.id && (
-                      <div style={styles.paramList}>
-                        {strategy.paramFields.map(field => (
-                          <div key={field.key} style={styles.paramField}>
-                            <div style={{flex: 1}}>
-                              <label style={styles.paramLabel}>{field.label}:</label>
-                              {field.explain && (
-                                <p style={styles.paramExplain}>{field.explain}</p>
-                              )}
-                            </div>
-                            {field.type === 'checkbox' ? (
-                              <input 
-                                type="checkbox"
-                                checked={strategy.params[field.key]}
-                                onChange={(e) => updateStrategyParam(strategy.id, field.key, e.target.checked)}
-                                style={styles.paramCheckbox}
-                              />
-                            ) : (
-                              <input 
-                                type="number"
-                                value={strategy.params[field.key]}
-                                onChange={(e) => updateStrategyParam(strategy.id, field.key, parseFloat(e.target.value))}
-                                min={field.min}
-                                max={field.max}
-                                style={styles.paramInput}
-                              />
+                  <div style={{ ...styles.strategyParams, borderTopColor: '#2d4a2b' }}>
+                    <div style={styles.paramList}>
+                      {strategy.paramFields.map(field => (
+                        <div key={field.key} style={styles.paramField}>
+                          <div style={{flex: 1}}>
+                            <label style={styles.paramLabel}>{field.label}:</label>
+                            {field.explain && (
+                              <p style={styles.paramExplain}>{field.explain}</p>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          {field.type === 'checkbox' ? (
+                            <input 
+                              type="checkbox"
+                              checked={strategy.params[field.key]}
+                              onChange={(e) => updateStrategyParam(strategy.id, field.key, e.target.checked)}
+                              style={styles.paramCheckbox}
+                            />
+                          ) : (
+                            <input 
+                              type="number"
+                              value={strategy.params[field.key]}
+                              onChange={(e) => updateStrategyParam(strategy.id, field.key, parseFloat(e.target.value))}
+                              min={field.min}
+                              max={field.max}
+                              style={{ ...styles.paramInput, borderColor: '#2d4a2b' }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-          ))}
+          )})}
         </div>
         
         <h3 style={styles.subsectionTitle}>Execution Parameters</h3>
@@ -425,14 +323,54 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
           </div>
         )}
         
-        <div style={styles.strategySummary}>
-          <strong>Active Strategies:</strong> {strategies.filter(s => s.params.enabled).length > 0 
-            ? strategies.filter(s => s.params.enabled).map(s => s.name).join(', ')
-            : 'None (Buy & Hold)'}
+        <div style={styles.portfolioOutputBottom}>
+          <strong>Portfolio Output (Full Portfolio)</strong>
+          <div style={{ ...styles.portfolioExportWrap, marginTop: '0.75rem', marginBottom: 0 }}>
+            <table style={styles.portfolioTable}>
+              <thead>
+                <tr>
+                  <th style={styles.portfolioTh}>Ticker</th>
+                  <th style={styles.portfolioTh}>Name</th>
+                  <th style={styles.portfolioTh}>Sleeve</th>
+                  <th style={{ ...styles.portfolioTh, ...styles.portfolioRight }}>Weight (total portfolio)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const weights = getPortfolioWeights(config.selectedStocks);
+                  const equityPct = config.targetEquityPct / 100;
+                  const debtPct = 1 - equityPct;
+                  return (
+                    <>
+                      {config.selectedStocks.map((ticker) => {
+                        const stock = ALL_STOCKS.find((s) => s.ticker === ticker);
+                        const totalWeight = (weights[ticker] ?? 0) * equityPct;
+                        return (
+                          <tr key={`bottom-${ticker}`}>
+                            <td style={styles.portfolioTd}>{ticker}</td>
+                            <td style={styles.portfolioTd}>{stock?.name ?? ticker}</td>
+                            <td style={styles.portfolioTd}>Equity</td>
+                            <td style={{ ...styles.portfolioTd, ...styles.portfolioRight }}>
+                              {formatPercent(totalWeight)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr key="bottom-agg">
+                        <td style={styles.portfolioTd}>AGG</td>
+                        <td style={styles.portfolioTd}>iShares Core U.S. Aggregate Bond ETF</td>
+                        <td style={styles.portfolioTd}>Debt</td>
+                        <td style={{ ...styles.portfolioTd, ...styles.portfolioRight }}>
+                          {formatPercent(debtPct)}
+                        </td>
+                      </tr>
+                    </>
+                  );
+                })()}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <p style={{ marginTop: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#6d6658' }}>
-          Backtest uses pre-loaded data for the 15 Colt Road Best Ideas; other stocks may not have data on this site.
-        </p>
         <ButtonGroup onBack={onBack} onNext={onRun} nextLabel="Run Backtest" nextDisabled={backtestLoading} />
       </Section>
     </div>
@@ -599,16 +537,11 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   strategyCard: {
     background: 'white',
-    border: '3px solid #d9d2c1',
+    border: '3px solid #a98a4f',
     padding: '1.5rem',
     cursor: 'pointer',
     transition: 'all 0.3s ease',
     position: 'relative'
-  },
-  strategyCardActive: {
-    borderColor: '#2d4a2b',
-    background: '#f5f2e9',
-    boxShadow: '0 4px 12px rgba(45, 74, 43, 0.2)'
   },
   strategyHeader: {
     display: 'flex',
@@ -637,17 +570,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   strategyParams: {
     marginTop: '1rem',
     paddingTop: '1rem',
-    borderTop: '2px solid #d9d2c1'
-  },
-  configButton: {
-    background: '#2d4a2b',
-    color: 'white',
-    border: 'none',
-    padding: '0.5rem 1rem',
-    cursor: 'pointer',
-    fontSize: '0.85rem',
-    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontWeight: 600
+    borderTop: '2px solid #a98a4f'
   },
   paramList: {
     marginTop: '1rem',
@@ -677,8 +600,9 @@ const styles: { [key: string]: React.CSSProperties } = {
   paramInput: {
     width: '100px',
     padding: '0.4rem',
-    border: '2px solid #d9d2c1',
-    fontFamily: "'Montserrat', sans-serif"
+    border: '2px solid #a98a4f',
+    fontFamily: "'Montserrat', sans-serif",
+    textAlign: 'right'
   },
   paramCheckbox: {
     width: '20px',
@@ -710,13 +634,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#2c2c2c',
     lineHeight: 1.6
   },
-  strategySummary: {
+  portfolioOutputBottom: {
     background: '#f5f2e9',
-    border: '2px solid #a98a4f',
-    padding: '1.5rem',
-    marginTop: '2rem',
-    marginBottom: '2rem',
-    fontSize: '1rem',
+    border: '2px solid #d9d2c1',
+    padding: '1rem 1.25rem',
+    marginTop: '0.5rem',
+    marginBottom: '1rem',
+    fontSize: '0.95rem',
     color: '#2c2c2c'
   }
 };

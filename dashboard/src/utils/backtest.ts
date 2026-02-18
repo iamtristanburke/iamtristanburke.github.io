@@ -119,11 +119,7 @@ function getStrategyWeights(
   const n = selectedStocks.length;
   if (n === 0) return {};
 
-  const baseWeights = getPortfolioWeights(
-    config.portfolioSizingMethod ?? 'equalWeight',
-    selectedStocks,
-    config.customWeights
-  );
+  const baseWeights = getPortfolioWeights(selectedStocks);
 
   if (strategyId === 'buyAndHold') {
     return baseWeights;

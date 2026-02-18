@@ -22,7 +22,6 @@ function App() {
     portfolioValue: 100000,
     targetEquityPct: 70,
     selectedStocks: [...COLT_ROAD_BEST_IDEAS_TICKERS],
-    portfolioSizingMethod: 'equalWeight',
     rebalanceFreq: 'quarterly',
     commission: 0,
     slippage: 0.1,

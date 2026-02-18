@@ -14,8 +14,6 @@ import {
 import type { ChartOptions } from 'chart.js';
 import * as XLSX from 'xlsx';
 import { Config, BacktestResults, TradingStrategyId, TRADING_STRATEGY_DISPLAY_NAMES } from '../types/colt-road';
-import { ALL_STOCKS } from '../utils/stockDatabase';
-import { getPortfolioWeights } from '../utils/portfolioWeights';
 import ProgressBar from '../components/ProgressBar';
 import Section from '../components/Section';
 import { formatNumber, formatCurrency } from '../utils/formatters';
@@ -259,100 +257,16 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
     return { chartData: data, chartOptions: options };
   }, [currentPeriod, selectedPeriod]);
   
-  const equityPct = config.targetEquityPct ?? 60;
-  const bondPct = 100 - equityPct;
-  const equityDollars = config.portfolioValue * (equityPct / 100);
-  const bondDollars = config.portfolioValue * (bondPct / 100);
-  const selectedStocks = config.selectedStocks ?? [];
-  const portfolioWeights = useMemo(
-    () => getPortfolioWeights(
-      config.portfolioSizingMethod ?? 'equalWeight',
-      selectedStocks,
-      config.customWeights
-    ),
-    [config.portfolioSizingMethod, config.customWeights, selectedStocks]
-  );
-  const tickerToName = useMemo(() => {
-    const map: Record<string, string> = {};
-    ALL_STOCKS.forEach((s) => { map[s.ticker] = s.name; });
-    return map;
-  }, []);
-
-  // Suggested fixed-income implementation: breakdown by vehicle type (user can substitute their own)
-  const bondBreakdown: { label: string; pctOfBonds: number }[] = [
-    { label: 'Money market / cash', pctOfBonds: 0.20 },
-    { label: 'Short-term Treasuries (e.g. 2-year)', pctOfBonds: 0.40 },
-    { label: 'Intermediate-term bond fund (e.g. BND)', pctOfBonds: 0.40 }
-  ];
-
   return (
     <div style={styles.container} className="page-container">
       <ProgressBar current={5} onStepClick={onStepClick} />
       <Section title="Your Results">
-        <h2 style={styles.portfolioTodayTitle}>Your Colt Road Portfolio Today</h2>
-        <p style={styles.portfolioTodayDesc}>
-          Based on your time horizon, risk tolerance, share of wealth in this portfolio, and other factors, here is your recommended allocation by security.
-        </p>
-        {results.lastUpdated && (
-          <p style={styles.dataAsOf}>
-            All returns and prices in this backtest are derived from actual security data (S&P 500, selected equities, and aggregate bonds). <strong>Data as of {results.lastUpdated}</strong>. Trading strategy applied retroactively: <strong>{activeStrategyName}</strong>.
-          </p>
-        )}
-        <div style={styles.allocationTableWrap}>
-          <table style={styles.allocationTable}>
-            <thead>
-              <tr style={styles.allocationTableHeader}>
-                <th style={styles.allocationTh}>Security</th>
-                <th style={styles.allocationTh}>Amount ($)</th>
-                <th style={styles.allocationTh}>% of portfolio</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selectedStocks.length > 0 ? (
-                selectedStocks.map((ticker) => {
-                  const weight = portfolioWeights[ticker] ?? 0;
-                  const stockDollars = equityDollars * weight;
-                  const stockPctOfPortfolio = equityPct * weight;
-                  return (
-                    <tr key={ticker} style={styles.allocationRow}>
-                      <td style={styles.allocationTd}>
-                        {ticker}
-                        {tickerToName[ticker] ? ` — ${tickerToName[ticker]}` : ''}
-                      </td>
-                      <td style={styles.allocationTd}>{formatCurrency(stockDollars, 0)}</td>
-                      <td style={styles.allocationTd}>{stockPctOfPortfolio.toFixed(1)}%</td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr style={styles.allocationRow}>
-                  <td style={styles.allocationTd}>Stocks (equity)</td>
-                  <td style={styles.allocationTd}>{formatCurrency(equityDollars, 0)}</td>
-                  <td style={styles.allocationTd}>{equityPct}%</td>
-                </tr>
-              )}
-              {bondBreakdown.map(({ label, pctOfBonds }) => (
-                <tr key={label} style={styles.allocationRow}>
-                  <td style={styles.allocationTd}>{label}</td>
-                  <td style={styles.allocationTd}>{formatCurrency(bondDollars * pctOfBonds, 0)}</td>
-                  <td style={styles.allocationTd}>{(bondPct * pctOfBonds).toFixed(1)}%</td>
-                </tr>
-              ))}
-              <tr style={{ ...styles.allocationRow, ...styles.allocationTotalRow }}>
-                <td style={styles.allocationTd}>Total</td>
-                <td style={styles.allocationTd}>{formatCurrency(config.portfolioValue, 0)}</td>
-                <td style={styles.allocationTd}>100%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p style={styles.bondNote}>
-          Fixed income above is a suggested implementation: money market for liquidity, short-term Treasuries for yield with limited duration risk, and a broad intermediate bond fund (e.g. BND) for diversification. You can substitute your own vehicles—e.g. individual 10-year Treasuries, TIPS, or other funds—to match your preferences and account type.
-        </p>
-
         <h3 style={styles.historicalSectionTitle}>Historical Performance Analysis</h3>
         <p style={styles.sectionDesc}>
           Based on your debt/equity allocation, stock universe, and balance rules, here is how your portfolio would have performed historically compared to the S&P 500 and a traditional 60/40 portfolio.
+          {results.lastUpdated && (
+            <> All returns and prices in this backtest are derived from actual security data (S&P 500, selected equities, and aggregate bonds). <strong>Data as of {results.lastUpdated}</strong>. Trading strategy applied retroactively: <strong>{activeStrategyName}</strong>.</>
+          )}
         </p>
         
         <div style={styles.periodSelector} className="period-selector">
@@ -428,13 +342,6 @@ const styles: { [key: string]: React.CSSProperties } = {
   portfolioTodayDesc: {
     marginBottom: '1.5rem',
     fontSize: '0.95rem',
-    color: '#6d6658',
-    lineHeight: 1.5,
-    maxWidth: '640px'
-  },
-  dataAsOf: {
-    marginBottom: '1.5rem',
-    fontSize: '0.85rem',
     color: '#6d6658',
     lineHeight: 1.5,
     maxWidth: '640px'
