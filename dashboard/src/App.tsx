@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Config, BacktestResults } from './types/colt-road';
+import { useState, useCallback } from 'react';
+import { Config, BacktestResults, HistoricalPricesData } from './types/colt-road';
 import ColtHeader from './components/ColtHeader';
 import ColtRoadResearchModal from './components/ColtRoadResearchModal';
 import LandingPage from './pages/LandingPage';
@@ -12,7 +12,13 @@ import ColtAgentPage from './pages/ColtAgentPage';
 import { generateBacktest } from './utils/backtest';
 import { COLT_ROAD_BEST_IDEAS_TICKERS } from './data/coltRoadBestIdeas';
 
-function AppContent() {
+function getHistoricalDataUrl(): string {
+  const base = typeof import.meta.env?.BASE_URL === 'string' ? import.meta.env.BASE_URL : '/';
+  const path = base.endsWith('/') ? 'data/historicalPrices.json' : '/data/historicalPrices.json';
+  return `${base}${path}`.replace(/\/+/g, '/');
+}
+
+function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [config, setConfig] = useState<Config>({
     portfolioValue: 100000,
@@ -24,7 +30,7 @@ function AppContent() {
     positionLimit: 10,
     accountType: 'taxable',
     taxBracket: 24,
-    strategies: {},
+    strategies: { buyAndHold: { enabled: true } },
     personalFactors: {
       timeHorizonYears: 10,
       age: 45,
@@ -42,7 +48,10 @@ function AppContent() {
     balanceSignals: { technical: true, ai: false, other: false }
   });
   const [results, setResults] = useState<BacktestResults | null>(null);
-  const [researchOpen, setResearchOpen] = useState(false);
+  const [backtestLoading, setBacktestLoading] = useState(false);
+  const [assetAllocationResearchOpen, setAssetAllocationResearchOpen] = useState(false);
+  const [stockPickingResearchOpen, setStockPickingResearchOpen] = useState(false);
+  const [positionSizingResearchOpen, setPositionSizingResearchOpen] = useState(false);
 
   const updateConfig = (key: keyof Config, value: any) => {
     setConfig(prev => ({ ...prev, [key]: value }));
@@ -57,21 +66,42 @@ function AppContent() {
     }));
   };
   
-  const runBacktest = () => {
+  const runBacktest = useCallback(async () => {
     if (config.selectedStocks.length === 0) {
       alert('Please select at least one stock');
       return;
     }
-    
-    const backtestResults = generateBacktest(config);
-    setResults(backtestResults);
-    setCurrentPage(5);
-  };
+    setBacktestLoading(true);
+    try {
+      const url = getHistoricalDataUrl();
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Market data could not be loaded (${res.status}). Make sure you run the app with "npm run dev" or deploy with the data file in place.`);
+      }
+      const raw = await res.json();
+      const data: HistoricalPricesData = {
+        lastUpdated: raw?.lastUpdated ?? '',
+        prices: raw?.prices ?? {}
+      };
+      // Yield once so the loading state paints before heavy backtest math starts.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      const backtestResults = generateBacktest(config, data);
+      setResults(backtestResults);
+      setCurrentPage(5);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Backtest failed. Please try again.';
+      alert(message);
+    } finally {
+      setBacktestLoading(false);
+    }
+  }, [config]);
   
   return (
     <div style={styles.app}>
       <ColtHeader />
-      <ColtRoadResearchModal open={researchOpen} onClose={() => setResearchOpen(false)} />
+      <ColtRoadResearchModal variant="assetAllocation" open={assetAllocationResearchOpen} onClose={() => setAssetAllocationResearchOpen(false)} />
+      <ColtRoadResearchModal variant="stockPicking" open={stockPickingResearchOpen} onClose={() => setStockPickingResearchOpen(false)} />
+      <ColtRoadResearchModal variant="positionSizing" open={positionSizingResearchOpen} onClose={() => setPositionSizingResearchOpen(false)} />
 
       {currentPage === 1 && <LandingPage onStart={() => setCurrentPage(2)} />}
       {currentPage === 2 && (
@@ -81,7 +111,7 @@ function AppContent() {
           onNext={() => setCurrentPage(3)} 
           onBack={() => setCurrentPage(1)}
           onStepClick={setCurrentPage}
-          onOpenResearch={() => setResearchOpen(true)}
+          onOpenResearch={() => setAssetAllocationResearchOpen(true)}
         />
       )}
       {currentPage === 3 && (
@@ -92,16 +122,18 @@ function AppContent() {
           onNext={() => setCurrentPage(4)} 
           onBack={() => setCurrentPage(2)}
           onStepClick={setCurrentPage}
-          onOpenResearch={() => setResearchOpen(true)}
+          onOpenResearch={() => setStockPickingResearchOpen(true)}
         />
       )}
       {currentPage === 4 && (
         <StrategyPage 
-          config={config} 
+          config={config}
           updateConfig={updateConfig} 
-          onRun={runBacktest} 
+          onRun={runBacktest}
+          backtestLoading={backtestLoading}
           onBack={() => setCurrentPage(3)}
           onStepClick={setCurrentPage}
+          onOpenPositionSizingResearch={() => setPositionSizingResearchOpen(true)}
         />
       )}
       {currentPage === 5 && results && (

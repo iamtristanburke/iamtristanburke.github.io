@@ -10,6 +10,7 @@ export const formatCurrency = (num: number, decimals: number = 0): string => {
 };
 
 export const formatMarketCap = (marketCap: number): string => {
+  if (!Number.isFinite(marketCap) || marketCap <= 0) return '—';
   if (marketCap >= 1000000) {
     return '$' + formatNumber(marketCap / 1000000, 1) + 'T';
   } else if (marketCap >= 1000) {

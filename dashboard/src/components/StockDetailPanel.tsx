@@ -64,6 +64,14 @@ export default function StockDetailPanel({ stock, onClose }: StockDetailPanelPro
               <dd style={styles.dd}>{stock.divYield.toFixed(1)}%</dd>
             </div>
             <div style={styles.dlRow}>
+              <dt style={styles.dt}>3Y revenue growth (CAGR)</dt>
+              <dd style={styles.dd}>
+                {stock.revenueGrowth3y != null && Number.isFinite(stock.revenueGrowth3y)
+                  ? `${stock.revenueGrowth3y.toFixed(1)}%`
+                  : '—'}
+              </dd>
+            </div>
+            <div style={styles.dlRow}>
               <dt style={styles.dt}>Sector</dt>
               <dd style={styles.dd}>{stock.sector}</dd>
             </div>
