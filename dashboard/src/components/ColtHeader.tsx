@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ColtRoadConfigModal from './ColtRoadConfigModal';
 
 /** Colt Road horse icon next to "Colt Road Management". Cache-bust so updates to the image are visible. */
@@ -6,6 +7,10 @@ const COLT_ICON = '/colt-icon.png?v=2';
 
 export default function ColtHeader() {
   const [configOpen, setConfigOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isColtAgentPage = location.pathname === '/colt-agent';
 
   return (
     <>
@@ -18,14 +23,36 @@ export default function ColtHeader() {
             <h1 style={styles.brandName} className="colt-brand-name">Colt Road Management</h1>
             <p style={styles.brandSubtitle}>Nimble AI Agent to Test Your Investment Ideas</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setConfigOpen(true)}
-            style={styles.configureBtn}
-            aria-label="Configure Colt Road"
-          >
-            Configure
-          </button>
+          <div style={styles.navButtons}>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              style={{
+                ...styles.navBtn,
+                ...(isColtAgentPage ? {} : styles.navBtnActive)
+              }}
+            >
+              Portfolio Builder
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/colt-agent')}
+              style={{
+                ...styles.navBtn,
+                ...(isColtAgentPage ? styles.navBtnActive : {})
+              }}
+            >
+              Colt Agent
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfigOpen(true)}
+              style={styles.configureBtn}
+              aria-label="Configure Colt Road"
+            >
+              Configure
+            </button>
+          </div>
         </div>
       </header>
       {configOpen && <ColtRoadConfigModal onClose={() => setConfigOpen(false)} />}
@@ -50,8 +77,29 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     gap: '0.35rem'
   },
-  configureBtn: {
+  navButtons: {
     marginLeft: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem'
+  },
+  navBtn: {
+    padding: '0.4rem 0.9rem',
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '0.875rem',
+    fontWeight: 600,
+    color: '#f8f6f1',
+    background: 'rgba(169, 138, 79, 0.15)',
+    border: '1px solid rgba(169, 138, 79, 0.3)',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  },
+  navBtnActive: {
+    background: 'rgba(169, 138, 79, 0.35)',
+    border: '1px solid rgba(169, 138, 79, 0.6)'
+  },
+  configureBtn: {
     padding: '0.4rem 0.9rem',
     fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '0.875rem',

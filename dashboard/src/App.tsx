@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Config, BacktestResults } from './types/colt-road';
 import ColtHeader from './components/ColtHeader';
 import ColtRoadResearchModal from './components/ColtRoadResearchModal';
@@ -7,10 +8,11 @@ import ProfilePage from './pages/ProfilePage';
 import StockSelectionPage from './pages/StockSelectionPage';
 import StrategyPage from './pages/StrategyPage';
 import ResultsPage from './pages/ResultsPage';
+import ColtAgentPage from './pages/ColtAgentPage';
 import { generateBacktest } from './utils/backtest';
 import { COLT_ROAD_BEST_IDEAS_TICKERS } from './data/coltRoadBestIdeas';
 
-function App() {
+function AppContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [config, setConfig] = useState<Config>({
     portfolioValue: 100000,
@@ -114,6 +116,22 @@ function App() {
         />
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/colt-agent" element={
+          <div style={styles.app}>
+            <ColtHeader />
+            <ColtAgentPage />
+          </div>
+        } />
+        <Route path="/*" element={<AppContent />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

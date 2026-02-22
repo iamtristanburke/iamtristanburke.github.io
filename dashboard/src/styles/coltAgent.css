@@ -1,0 +1,111 @@
+/* Colt Agent Page Styles - Separate from main application */
+
+.colt-agent-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: #e0e0e0;
+  padding: 2rem;
+}
+
+.colt-agent-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.colt-agent-header {
+  margin-bottom: 2rem;
+}
+
+.colt-agent-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.5rem 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.colt-agent-subtitle {
+  font-size: 1.1rem;
+  color: #b0b0b0;
+  margin: 0;
+}
+
+.colt-agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.colt-agent-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.colt-agent-card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.colt-agent-section {
+  margin-bottom: 2rem;
+}
+
+.colt-agent-full-width {
+  grid-column: 1 / -1;
+}
+
+/* Charts container */
+.colt-agent-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Empty state */
+.colt-agent-empty {
+  text-align: center;
+  padding: 3rem;
+  color: #888;
+}
+
+.colt-agent-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* Loading state */
+.colt-agent-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #b0b0b0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .colt-agent-page {
+    padding: 1rem;
+  }
+  
+  .colt-agent-title {
+    font-size: 2rem;
+  }
+  
+  .colt-agent-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .colt-agent-charts {
+    grid-template-columns: 1fr;
+  }
+}
+

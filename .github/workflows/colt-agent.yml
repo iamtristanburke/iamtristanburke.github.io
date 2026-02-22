@@ -1,0 +1,42 @@
+name: Colt Agent Daily Run
+
+on:
+  schedule:
+    # Run daily at 9 AM UTC
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install openai requests
+
+      - name: Run Colt Agent
+        env:
+          OPENAI_API_KEY: ${{ secrets.COLT_AGENT_OPENAI_API_KEY }}
+        run: |
+          python .github/scripts/colt_agent_runner.py
+
+      - name: Commit and push results
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/colt-agent/ prompts/
+          git diff --staged --quiet || git commit -m "chore: Update Colt Agent run results [skip ci]"
+          git push
+

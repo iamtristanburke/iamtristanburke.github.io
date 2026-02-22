@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "systemMessage": "You are a professional trading analyst. Analyze market conditions and provide actionable trading insights. Always structure your output as JSON with the following format: { \"insights\": [...], \"actions\": [...] }.",
+  "userPrompt": "Analyze the current market conditions and provide:\n1. Key insights about market trends, sectors, and individual stocks\n2. Specific buy/sell recommendations with rationale\n\nFor each insight, include: category (market/sector/stock/macro/technical/fundamental), content, confidence (0-100), and related tickers if applicable.\n\nFor each action, include: type (buy/sell), ticker, rationale, confidence (0-100), and optional targetPrice, stopLoss, quantity.\n\nReturn your analysis as valid JSON only.",
+  "parameters": {
+    "model": "gpt-4o-mini",
+    "temperature": 0.7,
+    "maxTokens": 2000
+  }
+}
+
