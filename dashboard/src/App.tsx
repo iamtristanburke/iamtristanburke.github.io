@@ -18,7 +18,7 @@ function getHistoricalDataUrl(): string {
   return `${base}${path}`.replace(/\/+/g, '/');
 }
 
-function App() {
+function AppContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [config, setConfig] = useState<Config>({
     portfolioValue: 100000,
@@ -155,12 +155,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/colt-agent" element={
-          <div style={styles.app}>
-            <ColtHeader />
-            <ColtAgentPage />
-          </div>
-        } />
+        <Route path="/colt-agent" element={<ColtAgentPage />} />
         <Route path="/*" element={<AppContent />} />
       </Routes>
     </BrowserRouter>
