@@ -14,7 +14,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -29,14 +28,7 @@ jobs:
       - name: Run Colt Agent
         env:
           OPENAI_API_KEY: ${{ secrets.COLT_AGENT_OPENAI_API_KEY }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
         run: |
           python .github/scripts/colt_agent_runner.py
-
-      - name: Commit and push results
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add data/colt-agent/ prompts/
-          git diff --staged --quiet || git commit -m "chore: Update Colt Agent run results [skip ci]"
-          git push
-
