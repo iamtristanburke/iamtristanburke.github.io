@@ -1,0 +1,12 @@
+{
+  "id": "8cee15dd-cafb-42ac-9782-ea487e000f9d",
+  "runId": "604c4b1f-610f-4336-9650-bbf3c999fba3",
+  "timestamp": "2026-02-23T00:00:46.500926Z",
+  "category": "market",
+  "content": "The overall market sentiment is cautious due to rising interest rates and inflation concerns, leading to increased volatility.",
+  "confidence": 75,
+  "relatedTickers": [
+    "SPY",
+    "IVV"
+  ]
+}

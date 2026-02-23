@@ -1,0 +1,13 @@
+{
+  "id": "efb36831-71c6-422f-9b46-373ea3686736",
+  "runId": "604c4b1f-610f-4336-9650-bbf3c999fba3",
+  "timestamp": "2026-02-23T00:00:46.500926Z",
+  "category": "sector",
+  "content": "Energy sector remains strong driven by high oil prices, with increasing demand forecasts supporting continued growth.",
+  "confidence": 85,
+  "relatedTickers": [
+    "XOM",
+    "CVX",
+    "BP"
+  ]
+}

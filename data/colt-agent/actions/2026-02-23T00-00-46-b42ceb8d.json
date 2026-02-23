@@ -1,0 +1,12 @@
+{
+  "id": "b42ceb8d-84ce-4689-8046-ae4c3e1fb7ff",
+  "runId": "604c4b1f-610f-4336-9650-bbf3c999fba3",
+  "timestamp": "2026-02-23T00:00:46.500926Z",
+  "type": "sell",
+  "ticker": "AAPL",
+  "rationale": "With the technology sector showing signs of weakness and lower-than-expected earnings, it's prudent to take profits before further declines.",
+  "confidence": 80,
+  "targetPrice": null,
+  "stopLoss": null,
+  "quantity": 50
+}

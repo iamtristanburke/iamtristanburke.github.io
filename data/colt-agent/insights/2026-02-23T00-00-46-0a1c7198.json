@@ -1,0 +1,11 @@
+{
+  "id": "0a1c7198-db08-4720-aadd-6ba9f2980caa",
+  "runId": "604c4b1f-610f-4336-9650-bbf3c999fba3",
+  "timestamp": "2026-02-23T00:00:46.500926Z",
+  "category": "technical",
+  "content": "The S&P 500 is testing a critical support level around 4,000; a break below could lead to further downside.",
+  "confidence": 80,
+  "relatedTickers": [
+    "SPY"
+  ]
+}

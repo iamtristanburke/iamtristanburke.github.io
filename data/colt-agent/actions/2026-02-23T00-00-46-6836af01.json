@@ -1,0 +1,12 @@
+{
+  "id": "6836af01-7979-4d81-8ace-f43533dc7ac4",
+  "runId": "604c4b1f-610f-4336-9650-bbf3c999fba3",
+  "timestamp": "2026-02-23T00:00:46.500926Z",
+  "type": "buy",
+  "ticker": "XOM",
+  "rationale": "The energy sector is benefiting from high oil prices and increasing demand, making it a solid investment opportunity.",
+  "confidence": 85,
+  "targetPrice": 120,
+  "stopLoss": 90,
+  "quantity": 30
+}
