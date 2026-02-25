@@ -1,4 +1,4 @@
-import { Config, BacktestResults, PeriodResult, HistoricalPricesData, TradingStrategyId } from '../types/colt-road';
+import { Config, BacktestResults, PeriodResult, HistoricalPricesData, TradingStrategyId, StrategyComparisonEntry, TRADING_STRATEGY_DISPLAY_NAMES } from '../types/colt-road';
 import { getPortfolioWeights } from './portfolioWeights';
 
 const REQUIRED_INDEX = 'SPY';
@@ -686,10 +686,38 @@ export function generateBacktest(config: Config, data: HistoricalPricesData): Ba
     { years: 15, label: '15-Year', startDate: '2009-01-01', endDate: '2024-01-01' }
   ];
 
-  const results: BacktestResults = {
-    periods: periods.map((period) => runHistoricalBacktest(config, period, prices)),
-    lastUpdated
-  };
+  const mainPeriods = periods.map((period) => runHistoricalBacktest(config, period, prices));
 
-  return results;
+  const strategyComparison: StrategyComparisonEntry[] = STRATEGY_IDS.map((stratId) => {
+    const overrideConfig: Config = {
+      ...config,
+      strategies: Object.fromEntries(
+        STRATEGY_IDS.map((id) => [id, { ...(config.strategies?.[id] || {}), enabled: id === stratId }])
+      )
+    };
+    const annualizedReturnByPeriod: Record<string, number> = {};
+    const totalReturnByPeriod: Record<string, number> = {};
+    for (const period of periods) {
+      try {
+        const pr = runHistoricalBacktest(overrideConfig, period, prices);
+        annualizedReturnByPeriod[period.label] = parseFloat(pr.metrics.portfolio.annualizedReturn);
+        totalReturnByPeriod[period.label] = parseFloat(pr.metrics.portfolio.totalReturn);
+      } catch {
+        annualizedReturnByPeriod[period.label] = NaN;
+        totalReturnByPeriod[period.label] = NaN;
+      }
+    }
+    return {
+      strategyId: stratId,
+      strategyName: TRADING_STRATEGY_DISPLAY_NAMES[stratId],
+      annualizedReturnByPeriod,
+      totalReturnByPeriod
+    };
+  });
+
+  return {
+    periods: mainPeriods,
+    lastUpdated,
+    strategyComparison
+  };
 }

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Config, BacktestResults, HistoricalPricesData } from './types/colt-road';
 import ColtHeader from './components/ColtHeader';
 import ColtRoadResearchModal from './components/ColtRoadResearchModal';
@@ -9,6 +9,7 @@ import StockSelectionPage from './pages/StockSelectionPage';
 import StrategyPage from './pages/StrategyPage';
 import ResultsPage from './pages/ResultsPage';
 import ColtAgentPage from './pages/ColtAgentPage';
+import ResearchPage from './pages/ResearchPage';
 import { generateBacktest } from './utils/backtest';
 import { COLT_ROAD_BEST_IDEAS_TICKERS } from './data/coltRoadBestIdeas';
 
@@ -52,6 +53,10 @@ function AppContent() {
   const [assetAllocationResearchOpen, setAssetAllocationResearchOpen] = useState(false);
   const [stockPickingResearchOpen, setStockPickingResearchOpen] = useState(false);
   const [positionSizingResearchOpen, setPositionSizingResearchOpen] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentPage]);
 
   const updateConfig = (key: keyof Config, value: any) => {
     setConfig(prev => ({ ...prev, [key]: value }));
@@ -98,12 +103,18 @@ function AppContent() {
   
   return (
     <div style={styles.app}>
-      <ColtHeader />
+      <ColtHeader onHome={currentPage === 6 ? () => setCurrentPage(1) : undefined} />
       <ColtRoadResearchModal variant="assetAllocation" open={assetAllocationResearchOpen} onClose={() => setAssetAllocationResearchOpen(false)} />
       <ColtRoadResearchModal variant="stockPicking" open={stockPickingResearchOpen} onClose={() => setStockPickingResearchOpen(false)} />
       <ColtRoadResearchModal variant="positionSizing" open={positionSizingResearchOpen} onClose={() => setPositionSizingResearchOpen(false)} />
 
-      {currentPage === 1 && <LandingPage onStart={() => setCurrentPage(2)} />}
+      {currentPage === 1 && <LandingPage onStart={() => setCurrentPage(2)} onResearch={() => setCurrentPage(6)} />}
+      {currentPage === 6 && (
+        <ResearchPage
+          onBack={() => setCurrentPage(1)}
+          onStartPortfolio={() => setCurrentPage(2)}
+        />
+      )}
       {currentPage === 2 && (
         <ProfilePage 
           config={config} 
@@ -111,7 +122,6 @@ function AppContent() {
           onNext={() => setCurrentPage(3)} 
           onBack={() => setCurrentPage(1)}
           onStepClick={setCurrentPage}
-          onOpenResearch={() => setAssetAllocationResearchOpen(true)}
         />
       )}
       {currentPage === 3 && (
@@ -122,7 +132,6 @@ function AppContent() {
           onNext={() => setCurrentPage(4)} 
           onBack={() => setCurrentPage(2)}
           onStepClick={setCurrentPage}
-          onOpenResearch={() => setStockPickingResearchOpen(true)}
         />
       )}
       {currentPage === 4 && (
@@ -133,7 +142,6 @@ function AppContent() {
           backtestLoading={backtestLoading}
           onBack={() => setCurrentPage(3)}
           onStepClick={setCurrentPage}
-          onOpenPositionSizingResearch={() => setPositionSizingResearchOpen(true)}
         />
       )}
       {currentPage === 5 && results && (

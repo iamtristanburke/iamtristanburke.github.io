@@ -3,17 +3,6 @@ import ProgressBar from '../components/ProgressBar';
 import Section from '../components/Section';
 import FormGroup from '../components/FormGroup';
 import ButtonGroup from '../components/ButtonGroup';
-import { ALL_STOCKS } from '../utils/stockDatabase';
-import { getPortfolioWeights } from '../utils/portfolioWeights';
-
-const COLT_ICON = '/colt-icon.png?v=2';
-
-/** Format a fraction (0–1) or decimal as percentage string, e.g. 0.067 → "6.7%". */
-function formatPercent(value: number, decimals: number = 1): string {
-  const pct = value * 100;
-  return pct.toFixed(decimals) + '%';
-}
-
 interface StrategyPageProps {
   config: Config;
   updateConfig: (key: keyof Config, value: any) => void;
@@ -21,7 +10,6 @@ interface StrategyPageProps {
   backtestLoading?: boolean;
   onBack: () => void;
   onStepClick?: (step: number) => void;
-  onOpenPositionSizingResearch?: () => void;
 }
 
 interface Strategy {
@@ -41,7 +29,7 @@ interface Strategy {
   }>;
 }
 
-export default function StrategyPage({ config, updateConfig, onRun, backtestLoading, onBack, onStepClick, onOpenPositionSizingResearch }: StrategyPageProps) {
+export default function StrategyPage({ config, updateConfig, onRun, backtestLoading, onBack, onStepClick }: StrategyPageProps) {
   const strategies: Strategy[] = [
     {
       id: 'buyAndHold',
@@ -175,24 +163,7 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
   return (
     <div style={styles.container} className="page-container">
       <ProgressBar current={4} onStepClick={onStepClick} />
-      <Section title="3. How to size positions and trade the stocks?">
-        <div style={styles.perspectiveHeadingRow}>
-          <div style={styles.coltIconWrap}>
-            <img src={COLT_ICON} alt="" style={styles.coltIconWhite} aria-hidden />
-          </div>
-          <h3 style={styles.subsectionTitleInRow}>Colt Road&apos;s Perspective</h3>
-        </div>
-        <p style={styles.perspectiveParagraph}>
-          The best style for most investors is <strong>low-turnover, disciplined portfolio management</strong>: hold a focused list of high-quality names, rebalance thoughtfully, and trade only when the thesis breaks or allocation targets drift. Technical and algorithmic strategies can add value for active traders, but they increase turnover and taxes; we recommend using them sparingly or for a sleeve of the portfolio, not the core.
-        </p>
-
-        {onOpenPositionSizingResearch && (
-          <button type="button" onClick={onOpenPositionSizingResearch} style={styles.researchBtn}>
-            Colt Road&apos;s Research on Position Sizing and Trading
-          </button>
-        )}
-
-        <h3 style={styles.subsectionTitle}>Trading Strategy</h3>
+      <Section title="3. What Trading Strategy to Apply?">
         <p style={styles.sectionDesc}>
           Select one strategy. The backtest will apply it retroactively to historical prices.
         </p>
@@ -323,54 +294,6 @@ export default function StrategyPage({ config, updateConfig, onRun, backtestLoad
           </div>
         )}
         
-        <div style={styles.portfolioOutputBottom}>
-          <strong>Portfolio Output (Full Portfolio)</strong>
-          <div style={{ ...styles.portfolioExportWrap, marginTop: '0.75rem', marginBottom: 0 }}>
-            <table style={styles.portfolioTable}>
-              <thead>
-                <tr>
-                  <th style={styles.portfolioTh}>Ticker</th>
-                  <th style={styles.portfolioTh}>Name</th>
-                  <th style={styles.portfolioTh}>Sleeve</th>
-                  <th style={{ ...styles.portfolioTh, ...styles.portfolioRight }}>Weight (total portfolio)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const weights = getPortfolioWeights(config.selectedStocks, config.positionLimit);
-                  const equityPct = config.targetEquityPct / 100;
-                  const debtPct = 1 - equityPct;
-                  return (
-                    <>
-                      {config.selectedStocks.map((ticker) => {
-                        const stock = ALL_STOCKS.find((s) => s.ticker === ticker);
-                        const totalWeight = (weights[ticker] ?? 0) * equityPct;
-                        return (
-                          <tr key={`bottom-${ticker}`}>
-                            <td style={styles.portfolioTd}>{ticker}</td>
-                            <td style={styles.portfolioTd}>{stock?.name ?? ticker}</td>
-                            <td style={styles.portfolioTd}>Equity</td>
-                            <td style={{ ...styles.portfolioTd, ...styles.portfolioRight }}>
-                              {formatPercent(totalWeight)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      <tr key="bottom-agg">
-                        <td style={styles.portfolioTd}>AGG</td>
-                        <td style={styles.portfolioTd}>iShares Core U.S. Aggregate Bond ETF</td>
-                        <td style={styles.portfolioTd}>Debt</td>
-                        <td style={{ ...styles.portfolioTd, ...styles.portfolioRight }}>
-                          {formatPercent(debtPct)}
-                        </td>
-                      </tr>
-                    </>
-                  );
-                })()}
-              </tbody>
-            </table>
-          </div>
-        </div>
         <ButtonGroup onBack={onBack} onNext={onRun} nextLabel="Run Backtest" nextDisabled={backtestLoading} />
       </Section>
     </div>
@@ -397,121 +320,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     paddingBottom: '0.5rem',
     borderBottom: '2px solid #d9d2c1'
   },
-  subsectionTitleInRow: {
-    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontSize: '1.35rem',
-    color: '#0f1f35',
-    margin: 0,
-    paddingBottom: 0
-  },
-  perspectiveHeadingRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.35rem',
-    marginTop: '2rem',
-    marginBottom: '0.75rem',
-    paddingBottom: '0.5rem',
-    borderBottom: '2px solid #d9d2c1'
-  },
-  coltIconWrap: {
-    width: '40px',
-    height: '40px',
-    flexShrink: 0,
-    background: '#0f1f35',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '6px',
-    boxSizing: 'border-box',
-    border: 'none',
-    outline: 'none'
-  },
-  coltIconWhite: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain',
-    filter: 'invert(1)',
-    mixBlendMode: 'lighten'
-  },
-  perspectiveParagraph: {
-    margin: '0 0 1.5rem 0',
-    fontSize: '0.95rem',
-    color: '#2c2c2c',
-    lineHeight: 1.65,
-    maxWidth: '720px'
-  },
-  researchBtn: {
-    display: 'block',
-    width: '100%',
-    marginTop: '0.5rem',
-    marginBottom: '1.5rem',
-    padding: '0.5rem 1.25rem',
-    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    color: '#0f1f35',
-    background: '#e8eef4',
-    border: '2px solid #0f1f35',
-    borderRadius: '4px',
-    cursor: 'pointer'
-  },
   optionRow: {
     display: 'flex',
     flexWrap: 'wrap',
     gap: '1.5rem',
     alignItems: 'center',
     marginBottom: '2rem'
-  },
-  portfolioExportTitle: {
-    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontSize: '1.1rem',
-    color: '#0f1f35',
-    marginTop: '1.5rem',
-    marginBottom: '0.5rem'
-  },
-  portfolioExportWrap: {
-    overflowX: 'auto',
-    marginBottom: '1.5rem',
-    border: '1px solid #d9d2c1',
-    borderRadius: '6px',
-    background: '#fbf9f4'
-  },
-  portfolioTable: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: '0.9rem'
-  },
-  portfolioTh: {
-    textAlign: 'left',
-    padding: '0.6rem 0.75rem',
-    borderBottom: '2px solid #d9d2c1',
-    color: '#0f1f35',
-    fontWeight: 600
-  },
-  portfolioTd: {
-    padding: '0.5rem 0.75rem',
-    borderBottom: '1px solid #e8e4dc',
-    color: '#2c2c2c'
-  },
-  portfolioRight: {
-    textAlign: 'right'
-  },
-  portfolioWeightCell: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.2rem'
-  },
-  portfolioWeightInput: {
-    width: '4.5rem',
-    padding: '0.25rem 0.35rem',
-    fontSize: '0.9rem',
-    border: '1px solid #d9d2c1',
-    borderRadius: '4px',
-    textAlign: 'right'
-  },
-  portfolioWeightSuffix: {
-    fontSize: '0.9rem',
-    color: '#2c2c2c'
   },
   hint: {
     fontSize: '0.85rem',
@@ -634,14 +448,5 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#2c2c2c',
     lineHeight: 1.6
   },
-  portfolioOutputBottom: {
-    background: '#f5f2e9',
-    border: '2px solid #d9d2c1',
-    padding: '1rem 1.25rem',
-    marginTop: '0.5rem',
-    marginBottom: '1rem',
-    fontSize: '0.95rem',
-    color: '#2c2c2c'
-  }
 };
 

@@ -9,7 +9,7 @@ import ButtonGroup from '../components/ButtonGroup';
 import StockDetailPanel from '../components/StockDetailPanel';
 import { COLT_ROAD_BEST_IDEAS } from '../data/coltRoadBestIdeas';
 
-const COLT_ICON = '/colt-icon.png?v=2';
+
 
 interface StockSelectionPageProps {
   config: Config;
@@ -18,10 +18,9 @@ interface StockSelectionPageProps {
   onNext: () => void;
   onBack: () => void;
   onStepClick?: (step: number) => void;
-  onOpenResearch?: () => void;
 }
 
-export default function StockSelectionPage({ config, updateConfig: _updateConfig, toggleStock, onNext, onBack, onStepClick, onOpenResearch }: StockSelectionPageProps) {
+export default function StockSelectionPage({ config, updateConfig: _updateConfig, toggleStock, onNext, onBack, onStepClick }: StockSelectionPageProps) {
   const [sortBy, setSortBy] = useState<keyof Stock>('marketCap');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [llmQuery, setLlmQuery] = useState('');
@@ -113,22 +112,7 @@ export default function StockSelectionPage({ config, updateConfig: _updateConfig
         <StockDetailPanel stock={selectedStock} onClose={() => setSelectedStock(null)} />
       )}
       <ProgressBar current={3} onStepClick={onStepClick} />
-      <Section title="2. What stocks should you be buying?">
-        <div style={styles.perspectiveHeadingRow}>
-          <div style={styles.coltIconWrap}>
-            <img src={COLT_ICON} alt="" style={styles.coltIconWhite} aria-hidden />
-          </div>
-          <h3 style={styles.subsectionTitle}>Colt Road&apos;s Perspective</h3>
-        </div>
-        <p style={styles.perspectiveParagraph}>
-          We buy <strong>cheap, profitable</strong> companies inside <strong>secular growth themes Colt Road&apos;s AI has identified as being the most relevant for the next 5–10 years+</strong>—not value traps in dying industries. Our universe: AI Physical Infrastructure, Silver Economy, Industrial Reshoring. Every name must pass a strict gate (Piotroski F-Score ≥7, ROIC &gt; WACC, Shareholder Yield &gt; 0), then we rank by Value (40%), Quality (40%), and Yield (20%). The result is Colt Road&apos;s 15 Best Ideas—listed and auto-selected below.
-        </p>
-        {onOpenResearch && (
-          <button type="button" onClick={onOpenResearch} style={styles.researchBtn}>
-            Colt Road&apos;s Research on Stock Picking
-          </button>
-        )}
-        <p style={styles.bestIdeasLabel}>Colt Road&apos;s 15 Best Ideas</p>
+      <Section title="2. What Stocks Does Colt Road Recommend?">
         <p style={styles.bestIdeasSubtext}>S&amp;P 500 names that best fit the Structural Alpha methodology (thematic universe + quality/value/yield). Same list appears in Colt Road&apos;s Research on Stock Picking.</p>
         <ol style={styles.bestIdeasList} start={1}>
           {COLT_ROAD_BEST_IDEAS.map(({ ticker, name, theme }) => (
@@ -268,42 +252,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#6d6658',
     lineHeight: 1.5
   },
-  perspectiveHeadingRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.35rem',
-    marginTop: '2rem',
-    marginBottom: '0.75rem',
-    paddingBottom: '0.5rem',
-    borderBottom: '2px solid #d9d2c1'
-  },
-  coltIconWrap: {
-    width: '40px',
-    height: '40px',
-    flexShrink: 0,
-    background: '#0f1f35',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '6px',
-    boxSizing: 'border-box',
-    border: 'none',
-    outline: 'none'
-  },
-  coltIconWhite: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain',
-    filter: 'invert(1)',
-    mixBlendMode: 'lighten'
-  },
-  subsectionTitle: {
-    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontSize: '1.35rem',
-    color: '#0f1f35',
-    margin: 0,
-    paddingBottom: 0
-  },
   subsectionTitleStandalone: {
     fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontSize: '1.35rem',
@@ -312,36 +260,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: '0.75rem',
     paddingBottom: '0.5rem',
     borderBottom: '2px solid #d9d2c1'
-  },
-  perspectiveParagraph: {
-    margin: '0 0 1.5rem 0',
-    fontSize: '0.95rem',
-    color: '#2c2c2c',
-    lineHeight: 1.65,
-    maxWidth: '720px'
-  },
-  researchBtn: {
-    display: 'block',
-    width: '100%',
-    marginTop: '0.5rem',
-    marginBottom: '1.5rem',
-    padding: '0.5rem 1.25rem',
-    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    color: '#0f1f35',
-    background: '#e8eef4',
-    border: '2px solid #0f1f35',
-    borderRadius: '4px',
-    cursor: 'pointer'
-  },
-  bestIdeasLabel: {
-    margin: '0 0 0.5rem 0',
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    color: '#6d6658',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em'
   },
   bestIdeasSubtext: {
     fontSize: '0.85rem',

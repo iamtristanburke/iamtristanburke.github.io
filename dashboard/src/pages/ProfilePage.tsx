@@ -7,7 +7,7 @@ import ButtonGroup from '../components/ButtonGroup';
 import { formatNumber } from '../utils/formatters';
 import { getDefaultMacroSnapshot, fetchMacroSnapshot } from '../services/macroApi';
 
-const COLT_ICON = '/colt-icon.png?v=2';
+
 
 function getTodayISO(): string {
   const d = new Date();
@@ -107,7 +107,6 @@ interface ProfilePageProps {
   onNext: () => void;
   onBack: () => void;
   onStepClick?: (step: number) => void;
-  onOpenResearch?: () => void;
 }
 
 const defaultPersonal: PersonalFactors = {
@@ -122,7 +121,7 @@ const defaultPersonal: PersonalFactors = {
   alternativeInvestmentsValue: 0
 };
 
-export default function ProfilePage({ config, updateConfig, onNext, onBack, onStepClick, onOpenResearch }: ProfilePageProps) {
+export default function ProfilePage({ config, updateConfig, onNext, onBack, onStepClick }: ProfilePageProps) {
   const pf = config.personalFactors ?? defaultPersonal;
   const [macro, setMacro] = useState<MarketMacroSnapshot>(() => getDefaultMacroSnapshot(getTodayISO()));
 
@@ -165,39 +164,6 @@ export default function ProfilePage({ config, updateConfig, onNext, onBack, onSt
 
       {/* ——— Section 1: Asset allocation ——— */}
       <Section title="1. What should your asset allocation be?">
-        <div style={styles.perspectiveHeadingRow}>
-          <div style={styles.coltIconWrap}>
-            <img src={COLT_ICON} alt="" style={styles.coltIconWhite} aria-hidden />
-          </div>
-          <h3 style={styles.subsectionTitleInRow}>Colt Road&apos;s Perspective</h3>
-        </div>
-        <div style={styles.aiBaselineBlock}>
-          <div style={styles.aiBaselineBar}>
-            <div style={{ ...styles.aiBaselineSegment, width: `${macro.aiBaselineEquityPct}%` }}>
-              <span style={styles.aiBaselineLabel}>{macro.aiBaselineEquityPct}% Equities</span>
-            </div>
-            <div style={{ ...styles.aiBaselineSegment, width: `${100 - macro.aiBaselineEquityPct}%`, backgroundColor: '#1a2f4a' }}>
-              <span style={styles.aiBaselineLabel}>{100 - macro.aiBaselineEquityPct}% Debt</span>
-            </div>
-          </div>
-          <p style={styles.aiBaselineRationale}>{macro.aiBaselineRationale}</p>
-        </div>
-
-        {onOpenResearch && (
-          <button type="button" onClick={onOpenResearch} style={styles.researchBtn}>
-            Colt Road&apos;s Research on Asset Allocation
-          </button>
-        )}
-
-      </Section>
-
-      {/* ——— Section 2: How personal dynamics impact Colt Road's perspective ——— */}
-      <Section title={<>Custom Colt Road&apos;s Recommendation to <span style={{ textDecoration: 'underline' }}>Your Needs</span></>}>
-        <p style={styles.sectionDesc}>
-          The base split above reflects today’s macro. Your answers below amend Colt Road’s recommendation to fit your time horizon, risk tolerance, and preferences.
-        </p>
-
-        <h3 style={styles.subsectionTitle}>Inputs that amend the target mix</h3>
         <div style={styles.formGridTwoCol} className="form-grid">
           <FormGroup label="Time horizon (years until you need this money)" reserveLabelSpace>
             <input
@@ -321,47 +287,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     maxWidth: '1400px',
     margin: '0 auto',
     padding: '3rem 4rem'
-  },
-  sectionDesc: {
-    marginBottom: '2rem',
-    color: '#6d6658',
-    lineHeight: 1.6
-  },
-  perspectiveHeadingRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.35rem',
-    marginTop: 0,
-    marginBottom: '0.75rem',
-    paddingBottom: '0.5rem',
-    borderBottom: '2px solid #d9d2c1'
-  },
-  coltIconWrap: {
-    width: '40px',
-    height: '40px',
-    flexShrink: 0,
-    background: '#0f1f35',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '6px',
-    boxSizing: 'border-box',
-    border: 'none',
-    outline: 'none'
-  },
-  coltIconWhite: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain',
-    filter: 'invert(1)',
-    mixBlendMode: 'lighten'
-  },
-  subsectionTitleInRow: {
-    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontSize: '1.35rem',
-    color: '#0f1f35',
-    margin: 0,
-    paddingBottom: 0
   },
   subsectionTitle: {
     fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -540,170 +465,5 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '1.25rem',
     background: '#f5f2e9'
   },
-  aiBaselineBlock: {
-    background: 'linear-gradient(135deg, #f0ede5 0%, #e8e4db 100%)',
-    border: '2px solid #d9d2c1',
-    padding: '1.5rem 2rem',
-    marginBottom: '0.5rem',
-    borderLeft: '4px solid #1a2f4a'
-  },
-  aiBaselineBar: {
-    display: 'flex',
-    height: '52px',
-    border: '1px solid rgba(168, 155, 132, 0.5)',
-    overflow: 'hidden',
-    marginBottom: '1.25rem'
-  },
-  aiBaselineSegment: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2d4a2b',
-    transition: 'width 0.3s ease'
-  },
-  aiBaselineLabel: {
-    color: 'white',
-    fontWeight: 700,
-    fontSize: '1rem',
-    textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
-  },
-  aiBaselineRationale: {
-    margin: 0,
-    fontSize: '0.95rem',
-    color: '#2c2c2c',
-    lineHeight: 1.65
-  },
-  researchBtn: {
-    display: 'block',
-    width: '100%',
-    marginTop: '1rem',
-    marginBottom: '1.5rem',
-    padding: '0.5rem 1.25rem',
-    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    color: '#0f1f35',
-    background: '#e8eef4',
-    border: '2px solid #0f1f35',
-    borderRadius: '4px',
-    cursor: 'pointer'
-  },
-  researchOverlay: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(15, 31, 53, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1100,
-    padding: '2rem'
-  },
-  researchModal: {
-    background: '#f8f6f0',
-    border: '2px solid #d9d2c1',
-    borderRadius: '8px',
-    maxWidth: '720px',
-    width: '100%',
-    maxHeight: '90vh',
-    display: 'flex',
-    flexDirection: 'column',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
-  },
-  researchModalHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '1rem 1.25rem',
-    borderBottom: '2px solid #d9d2c1',
-    background: '#f0ede5',
-    flexShrink: 0
-  },
-  researchModalTitle: {
-    margin: 0,
-    fontSize: '1.25rem',
-    fontWeight: 700,
-    color: '#0f1f35',
-    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-  },
-  researchCloseBtn: {
-    background: 'none',
-    border: 'none',
-    fontSize: '1.5rem',
-    color: '#6d6658',
-    cursor: 'pointer',
-    padding: '0.25rem'
-  },
-  researchModalBody: {
-    overflowY: 'auto',
-    padding: '1.25rem',
-    flex: '1 1 auto',
-    minHeight: 0
-  },
-  reportSectionTitle: {
-    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontSize: '1.1rem',
-    fontWeight: 700,
-    color: '#0f1f35',
-    marginTop: '1.5rem',
-    marginBottom: '0.5rem',
-    paddingBottom: '0.35rem',
-    borderBottom: '1px solid #d9d2c1'
-  },
-  reportParagraph: {
-    fontSize: '0.9rem',
-    color: '#2c2c2c',
-    lineHeight: 1.6,
-    margin: '0 0 0.75rem 0'
-  },
-  reportLabel: {
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    color: '#0f1f35',
-    margin: '0.5rem 0 0.25rem 0'
-  },
-  reportEquation: {
-    fontFamily: "var(--font-serif), Georgia, 'Times New Roman', serif",
-    fontSize: '0.95rem',
-    color: '#0f1f35',
-    margin: '0.25rem 0 0.75rem 0',
-    padding: '0.5rem 0.75rem',
-    background: '#f0ede5',
-    borderLeft: '3px solid #0f1f35'
-  },
-  researchChartWrapper: {
-    height: '220px',
-    margin: '1rem 0'
-  },
-  reportEquationNote: {
-    fontSize: '0.85rem',
-    color: '#6d6658',
-    fontStyle: 'italic'
-  },
-  reportList: {
-    margin: '0.5rem 0 1rem 0',
-    paddingLeft: '1.25rem',
-    fontSize: '0.9rem',
-    color: '#2c2c2c',
-    lineHeight: 1.6
-  },
-  reportTable: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: '0.9rem',
-    marginBottom: '1rem'
-  },
-  reportTableTh: {
-    textAlign: 'left',
-    padding: '0.5rem 0.75rem',
-    borderBottom: '2px solid #0f1f35',
-    color: '#0f1f35',
-    fontWeight: 600
-  },
-  reportTableTd: {
-    padding: '0.5rem 0.75rem',
-    borderBottom: '1px solid #d9d2c1',
-    color: '#2c2c2c',
-    verticalAlign: 'top'
-  }
 };
 

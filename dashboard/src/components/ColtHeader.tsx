@@ -1,17 +1,26 @@
 /** Colt Road horse icon next to "Colt Road Management". Cache-bust so updates to the image are visible. */
 const COLT_ICON = '/colt-icon.png?v=2';
 
-export default function ColtHeader() {
+interface ColtHeaderProps {
+  onHome?: () => void;
+}
+
+export default function ColtHeader({ onHome }: ColtHeaderProps) {
   return (
     <header style={styles.header} className="colt-header">
       <div style={styles.headerContent} className="colt-header-content">
-        <div style={styles.coltContainer}>
-          <img src={COLT_ICON} alt="Colt Road" style={styles.coltImage} />
+        <div style={styles.brandRow}>
+          <div style={styles.coltContainer}>
+            <img src={COLT_ICON} alt="Colt Road" style={styles.coltImage} />
+          </div>
+          <div style={styles.brandBlock}>
+            <h1 style={styles.brandName} className="colt-brand-name">Colt Road Management</h1>
+            <p style={styles.brandSubtitle}>Nimble AI Agent to Test Your Investment Ideas</p>
+          </div>
         </div>
-        <div style={styles.brandBlock}>
-          <h1 style={styles.brandName} className="colt-brand-name">Colt Road Management</h1>
-          <p style={styles.brandSubtitle}>Nimble AI Agent to Test Your Investment Ideas</p>
-        </div>
+        {onHome && (
+          <button style={styles.homeBtn} onClick={onHome}>← Home</button>
+        )}
       </div>
     </header>
   );
@@ -32,7 +41,24 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: '0 auto',
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  brandRow: {
+    display: 'flex',
+    alignItems: 'center',
     gap: '0.35rem'
+  },
+  homeBtn: {
+    background: 'transparent',
+    border: '1.5px solid rgba(255,255,255,0.45)',
+    color: '#e8eef4',
+    padding: '0.4rem 1rem',
+    fontFamily: "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    borderRadius: '2px',
+    letterSpacing: '0.03em'
   },
   coltContainer: {
     width: '82px',

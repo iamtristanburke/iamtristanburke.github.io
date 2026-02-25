@@ -396,6 +396,78 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
           </div>
         </div>
 
+        {results.strategyComparison && results.strategyComparison.length > 0 && (() => {
+          const comparison = results.strategyComparison!;
+          const periodLabels = results.periods.map(p => p.period);
+          const buyAndHold = comparison.find(s => s.strategyId === 'buyAndHold');
+          const sorted = [...comparison].sort((a, b) => {
+            const lastPeriod = periodLabels[periodLabels.length - 1];
+            return (b.annualizedReturnByPeriod[lastPeriod] || 0) - (a.annualizedReturnByPeriod[lastPeriod] || 0);
+          });
+          const bestByPeriod: Record<string, number> = {};
+          for (const label of periodLabels) {
+            bestByPeriod[label] = Math.max(...comparison.map(s => s.annualizedReturnByPeriod[label] || -Infinity));
+          }
+          return (
+            <>
+              <h3 style={styles.historicalSectionTitle}>Optimal Trading Strategy for This Portfolio</h3>
+              <p style={styles.sectionDesc}>
+                Each trading strategy was backtested against your specific stock selection, allocation, and execution parameters. Annualized returns shown below; the best performer in each period is highlighted. Delta columns show difference versus Buy and Hold.
+              </p>
+              <div style={styles.bearTableWrap}>
+                <table style={styles.bearTable}>
+                  <thead>
+                    <tr style={styles.bearTableHeader}>
+                      <th style={styles.bearTh}>Strategy</th>
+                      {periodLabels.map(label => (
+                        <th key={label} style={{ ...styles.bearTh, ...styles.bearRight, minWidth: '90px' }}>{label}</th>
+                      ))}
+                      {periodLabels.map(label => (
+                        <th key={`d-${label}`} style={{ ...styles.bearTh, ...styles.bearRight, minWidth: '80px' }}>vs B&amp;H ({label.replace('-Year', 'Y')})</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.map(entry => {
+                      const isActive = config.strategies?.[entry.strategyId]?.enabled;
+                      return (
+                        <tr key={entry.strategyId} style={{ ...styles.bearRow, ...(isActive ? { background: 'rgba(45, 74, 43, 0.08)' } : {}) }}>
+                          <td style={{ ...styles.bearTd, fontWeight: isActive ? 700 : 400 }}>
+                            {entry.strategyName}{isActive ? ' ✦' : ''}
+                          </td>
+                          {periodLabels.map(label => {
+                            const val = entry.annualizedReturnByPeriod[label];
+                            const isBest = !isNaN(val) && val === bestByPeriod[label];
+                            return (
+                              <td key={label} style={{ ...styles.bearTd, ...styles.bearRight, ...(isBest ? { color: '#2d4a2b', fontWeight: 700 } : {}) }}>
+                                {isNaN(val) ? '—' : `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`}
+                              </td>
+                            );
+                          })}
+                          {periodLabels.map(label => {
+                            const val = entry.annualizedReturnByPeriod[label];
+                            const bhVal = buyAndHold?.annualizedReturnByPeriod[label];
+                            if (isNaN(val) || bhVal == null || isNaN(bhVal)) return <td key={`d-${label}`} style={{ ...styles.bearTd, ...styles.bearRight }}>—</td>;
+                            const delta = val - bhVal;
+                            return (
+                              <td key={`d-${label}`} style={{ ...styles.bearTd, ...styles.bearRight, color: delta >= 0 ? '#2d4a2b' : '#8b1a1a', fontWeight: 700 }}>
+                                {delta >= 0 ? '+' : ''}{delta.toFixed(2)}%
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ ...styles.sectionDesc, marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                ✦ = your selected strategy. Strategies are ranked by longest-period annualized return.
+              </p>
+            </>
+          );
+        })()}
+
         <h3 style={styles.historicalSectionTitle}>Bear Market Comparison (Peak to Trough)</h3>
         <p style={styles.sectionDesc}>
           Peak-to-trough performance for your portfolio versus S&amp;P 500 and 60/40 during the two major drawdowns in this backtest window.
@@ -409,7 +481,9 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
                 <th style={{ ...styles.bearTh, ...styles.bearDurationCol }}>Duration</th>
                 <th style={{ ...styles.bearTh, ...styles.bearMetricCol }}>Your Portfolio</th>
                 <th style={{ ...styles.bearTh, ...styles.bearMetricCol }}>S&amp;P 500</th>
+                <th style={{ ...styles.bearTh, ...styles.bearDeltaCol }}>vs S&amp;P</th>
                 <th style={{ ...styles.bearTh, ...styles.bearMetricCol }}>60/40</th>
+                <th style={{ ...styles.bearTh, ...styles.bearDeltaCol }}>vs 60/40</th>
               </tr>
             </thead>
             <tbody>
@@ -426,8 +500,18 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
                   <td style={{ ...styles.bearTd, ...styles.bearRight }}>
                     {formatPctCell(row.sp500ReturnPct)}
                   </td>
+                  <td style={{ ...styles.bearTd, ...styles.bearRight, ...(row.portfolioReturnPct != null && row.sp500ReturnPct != null ? { color: (row.portfolioReturnPct - row.sp500ReturnPct) >= 0 ? '#2d4a2b' : '#8b1a1a', fontWeight: 700 } : {}) }}>
+                    {row.portfolioReturnPct != null && row.sp500ReturnPct != null
+                      ? `${(row.portfolioReturnPct - row.sp500ReturnPct) >= 0 ? '+' : ''}${(row.portfolioReturnPct - row.sp500ReturnPct).toFixed(1)}%`
+                      : '—'}
+                  </td>
                   <td style={{ ...styles.bearTd, ...styles.bearRight }}>
                     {formatPctCell(row.balancedReturnPct)}
+                  </td>
+                  <td style={{ ...styles.bearTd, ...styles.bearRight, ...(row.portfolioReturnPct != null && row.balancedReturnPct != null ? { color: (row.portfolioReturnPct - row.balancedReturnPct) >= 0 ? '#2d4a2b' : '#8b1a1a', fontWeight: 700 } : {}) }}>
+                    {row.portfolioReturnPct != null && row.balancedReturnPct != null
+                      ? `${(row.portfolioReturnPct - row.balancedReturnPct) >= 0 ? '+' : ''}${(row.portfolioReturnPct - row.balancedReturnPct).toFixed(1)}%`
+                      : '—'}
                   </td>
                 </tr>
               ))}
@@ -664,6 +748,9 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   bearMetricCol: {
     minWidth: '110px'
+  },
+  bearDeltaCol: {
+    minWidth: '80px'
   },
   bearRight: {
     textAlign: 'right'

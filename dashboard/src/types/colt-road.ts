@@ -149,10 +149,18 @@ export interface PeriodResult {
   };
 }
 
+export interface StrategyComparisonEntry {
+  strategyId: TradingStrategyId;
+  strategyName: string;
+  annualizedReturnByPeriod: Record<string, number>;
+  totalReturnByPeriod: Record<string, number>;
+}
+
 export interface BacktestResults {
   periods: PeriodResult[];
   /** ISO date (YYYY-MM-DD) when historical price data was last updated. All returns are derived from this data. */
   lastUpdated: string;
+  strategyComparison?: StrategyComparisonEntry[];
 }
 
 export interface HistoricalReturns {
