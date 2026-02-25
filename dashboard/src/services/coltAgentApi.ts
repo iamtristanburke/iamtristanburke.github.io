@@ -5,7 +5,7 @@
 import type { AgentRun, Insight, Action, PromptConfig } from '../types/colt-agent';
 import { validateAgentRun, validateInsight, validateAction, validatePromptConfig } from '../utils/coltAgentSchemas';
 import { getFirebaseDatabase } from '../config/firebase';
-import { ref, get, query, orderByChild, limitToLast, startAt, endAt, set, push } from 'firebase/database';
+import { ref, get, query, orderByChild, limitToLast, startAt, endAt, set } from 'firebase/database';
 
 const DB_BASE_PATH = 'colt-agent';
 
