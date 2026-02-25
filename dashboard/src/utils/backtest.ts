@@ -1,4 +1,4 @@
-import { Config, BacktestResults, PeriodResult, HistoricalPricesData, TradingStrategyId, StrategyComparisonEntry, TRADING_STRATEGY_DISPLAY_NAMES } from '../types/colt-road';
+import { Config, BacktestResults, PeriodResult, HistoricalPricesData, TradingStrategyId, StrategyComparisonEntry, SensitivityResult, SensitivityCell, TRADING_STRATEGY_DISPLAY_NAMES } from '../types/colt-road';
 import { getPortfolioWeights } from './portfolioWeights';
 
 const REQUIRED_INDEX = 'SPY';
@@ -660,6 +660,138 @@ function runHistoricalBacktest(
   };
 }
 
+interface SensitivityGrid {
+  strategyId: TradingStrategyId;
+  param1: { key: string; label: string; values: number[] };
+  param2?: { key: string; label: string; values: number[] };
+}
+
+function getSensitivityGrid(strategyId: TradingStrategyId, _config: Config): SensitivityGrid | null {
+  switch (strategyId) {
+    case 'momentum':
+      return {
+        strategyId, 
+        param1: { key: 'lookbackDays', label: 'Lookback (days)', values: [126, 189, 252, 315, 504] },
+        param2: { key: 'threshold', label: 'Threshold (%)', values: [0, 5, 10, 15, 20] }
+      };
+    case 'meanReversion':
+      return {
+        strategyId,
+        param1: { key: 'rsiPeriod', label: 'RSI Period', values: [7, 10, 14, 20, 30] },
+        param2: { key: 'oversoldLevel', label: 'Oversold Level', values: [20, 25, 30, 35, 40] }
+      };
+    case 'movingAverage':
+      return {
+        strategyId,
+        param1: { key: 'shortMA', label: 'Short MA (days)', values: [25, 50, 75, 100] },
+        param2: { key: 'longMA', label: 'Long MA (days)', values: [100, 150, 200, 250, 300] }
+      };
+    case 'breakout':
+      return {
+        strategyId,
+        param1: { key: 'period', label: 'Lookback (days)', values: [63, 126, 189, 252, 365] }
+      };
+    case 'contrarian':
+      return {
+        strategyId,
+        param1: { key: 'drawdownThreshold', label: 'Drawdown (%)', values: [10, 15, 20, 30, 50] },
+        param2: { key: 'recoveryPeriod', label: 'Recovery (days)', values: [20, 60, 90, 120, 180] }
+      };
+    case 'technical':
+      return {
+        strategyId,
+        param1: { key: 'macdFast', label: 'Fast MA (days)', values: [6, 9, 12, 18, 24] },
+        param2: { key: 'macdSlow', label: 'Slow MA (days)', values: [13, 20, 26, 35, 50] }
+      };
+    default:
+      return null;
+  }
+}
+
+function findClosestIdx(values: number[], target: number): number {
+  let best = 0;
+  let bestDist = Math.abs(values[0] - target);
+  for (let i = 1; i < values.length; i++) {
+    const d = Math.abs(values[i] - target);
+    if (d < bestDist) { best = i; bestDist = d; }
+  }
+  return best;
+}
+
+function runSensitivity(
+  config: Config,
+  prices: Record<string, { dates: string[]; prices: number[] }>,
+  periods: { years: number; label: string; startDate: string; endDate: string }[]
+): SensitivityResult | undefined {
+  const activeId = getActiveStrategyId(config);
+  const grid = getSensitivityGrid(activeId, config);
+  if (!grid) return undefined;
+
+  const period5 = periods.find(p => p.years === 5);
+  const period10 = periods.find(p => p.years === 10);
+  if (!period5 && !period10) return undefined;
+
+  const currentParams = config.strategies?.[activeId as keyof typeof config.strategies] || {};
+  const p1Vals = grid.param1.values;
+  const p2Vals = grid.param2 ? grid.param2.values : [0];
+
+  const matrix: SensitivityCell[][] = [];
+  for (let r = 0; r < p1Vals.length; r++) {
+    const row: SensitivityCell[] = [];
+    for (let c = 0; c < p2Vals.length; c++) {
+      const paramOverrides: Record<string, unknown> = {
+        ...currentParams,
+        enabled: true,
+        [grid.param1.key]: p1Vals[r]
+      };
+      if (grid.param2) {
+        paramOverrides[grid.param2.key] = p2Vals[c];
+      }
+      const overrideConfig: Config = {
+        ...config,
+        strategies: Object.fromEntries(
+          STRATEGY_IDS.map(id => [id, { ...(config.strategies?.[id] || {}), enabled: id === activeId }])
+        )
+      };
+      (overrideConfig.strategies as Record<string, unknown>)[activeId] = paramOverrides;
+
+      let ann5 = NaN, ann10 = NaN;
+      try {
+        if (period5) {
+          const r5 = runHistoricalBacktest(overrideConfig, period5, prices);
+          ann5 = parseFloat(r5.metrics.portfolio.annualizedReturn);
+        }
+      } catch { /* data gap */ }
+      try {
+        if (period10) {
+          const r10 = runHistoricalBacktest(overrideConfig, period10, prices);
+          ann10 = parseFloat(r10.metrics.portfolio.annualizedReturn);
+        }
+      } catch { /* data gap */ }
+      row.push({ annualized5Y: ann5, annualized10Y: ann10 });
+    }
+    matrix.push(row);
+  }
+
+  const curP1 = (currentParams as Record<string, unknown>)[grid.param1.key] as number | undefined;
+  const currentParam1Idx = findClosestIdx(p1Vals, curP1 ?? p1Vals[Math.floor(p1Vals.length / 2)]);
+  let currentParam2Idx = 0;
+  if (grid.param2) {
+    const curP2 = (currentParams as Record<string, unknown>)[grid.param2.key] as number | undefined;
+    currentParam2Idx = findClosestIdx(p2Vals, curP2 ?? p2Vals[Math.floor(p2Vals.length / 2)]);
+  }
+
+  return {
+    strategyId: activeId,
+    strategyName: TRADING_STRATEGY_DISPLAY_NAMES[activeId],
+    param1: grid.param1,
+    param2: grid.param2,
+    matrix,
+    currentParam1Idx,
+    currentParam2Idx
+  };
+}
+
 /**
  * Generate backtest results from actual historical prices only.
  * data: must be loaded from /data/historicalPrices.json (fetched by the app so site users can run regressions).
@@ -715,9 +847,12 @@ export function generateBacktest(config: Config, data: HistoricalPricesData): Ba
     };
   });
 
+  const sensitivity = runSensitivity(config, prices, periods);
+
   return {
     periods: mainPeriods,
     lastUpdated,
-    strategyComparison
+    strategyComparison,
+    sensitivity
   };
 }

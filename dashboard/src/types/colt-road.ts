@@ -156,11 +156,28 @@ export interface StrategyComparisonEntry {
   totalReturnByPeriod: Record<string, number>;
 }
 
+export interface SensitivityCell {
+  annualized5Y: number;
+  annualized10Y: number;
+}
+
+export interface SensitivityResult {
+  strategyId: TradingStrategyId;
+  strategyName: string;
+  param1: { key: string; label: string; values: number[] };
+  param2?: { key: string; label: string; values: number[] };
+  /** matrix[row][col] — row = param1 index, col = param2 index (or col=0 for 1-param) */
+  matrix: SensitivityCell[][];
+  currentParam1Idx: number;
+  currentParam2Idx: number;
+}
+
 export interface BacktestResults {
   periods: PeriodResult[];
   /** ISO date (YYYY-MM-DD) when historical price data was last updated. All returns are derived from this data. */
   lastUpdated: string;
   strategyComparison?: StrategyComparisonEntry[];
+  sensitivity?: SensitivityResult;
 }
 
 export interface HistoricalReturns {

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -464,6 +464,78 @@ export default function ResultsPage({ results, config, onRestart, onStepClick }:
               <p style={{ ...styles.sectionDesc, marginTop: '0.5rem', fontSize: '0.85rem' }}>
                 ✦ = your selected strategy. Strategies are ranked by longest-period annualized return.
               </p>
+            </>
+          );
+        })()}
+
+        {results.sensitivity && (() => {
+          const sens = results.sensitivity!;
+          const is2D = !!sens.param2;
+          const p2Vals = sens.param2 ? sens.param2.values : [0];
+          const bestCell5Y = { val: -Infinity, r: -1, c: -1 };
+          const bestCell10Y = { val: -Infinity, r: -1, c: -1 };
+          for (let r = 0; r < sens.matrix.length; r++) {
+            for (let c = 0; c < sens.matrix[r].length; c++) {
+              const cell = sens.matrix[r][c];
+              if (!isNaN(cell.annualized5Y) && cell.annualized5Y > bestCell5Y.val) { bestCell5Y.val = cell.annualized5Y; bestCell5Y.r = r; bestCell5Y.c = c; }
+              if (!isNaN(cell.annualized10Y) && cell.annualized10Y > bestCell10Y.val) { bestCell10Y.val = cell.annualized10Y; bestCell10Y.r = r; bestCell10Y.c = c; }
+            }
+          }
+          const fmtCell = (val: number, isBest: boolean) => {
+            if (isNaN(val)) return <span style={{ color: '#6d6658' }}>—</span>;
+            const color = isBest ? '#2d4a2b' : val >= 0 ? '#0f1f35' : '#8b1a1a';
+            return <span style={{ color, fontWeight: isBest ? 700 : 400 }}>{val >= 0 ? '+' : ''}{val.toFixed(2)}%</span>;
+          };
+
+          const renderTable = (periodKey: '5Y' | '10Y', periodLabel: string, bestCell: { r: number; c: number }) => (
+            <div style={{ marginBottom: '2rem' }}>
+              <h4 style={{ ...styles.historicalSectionTitle, fontSize: '1.1rem', marginTop: '1.5rem' }}>{periodLabel} Annualized Returns</h4>
+              <div style={styles.bearTableWrap}>
+                <table style={styles.bearTable}>
+                  <thead>
+                    <tr style={styles.bearTableHeader}>
+                      <th style={styles.bearTh}>{sens.param1.label}</th>
+                      {is2D ? p2Vals.map((v, ci) => (
+                        <th key={ci} style={{ ...styles.bearTh, ...styles.bearRight }}>
+                          {v}
+                        </th>
+                      )) : (
+                        <th style={{ ...styles.bearTh, ...styles.bearRight }}>Return</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sens.param1.values.map((p1v, ri) => (
+                      <tr key={ri} style={styles.bearRow}>
+                        <td style={styles.bearTd}>
+                          {p1v}
+                        </td>
+                        {sens.matrix[ri].map((cell, ci) => {
+                          const val = periodKey === '5Y' ? cell.annualized5Y : cell.annualized10Y;
+                          const isBest = ri === bestCell.r && ci === bestCell.c;
+                          return (
+                            <td key={ci} style={{ ...styles.bearTd, ...styles.bearRight, ...(isBest ? { border: '2px solid #2d4a2b' } : {}) }}>
+                              {fmtCell(val, isBest)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+
+          return (
+            <>
+              <h3 style={styles.historicalSectionTitle}>Parameter Sensitivity: {sens.strategyName}</h3>
+              <p style={styles.sectionDesc}>
+                Annualized returns for different parameter combinations using your portfolio. Best value is outlined in green.
+                {is2D ? ` Rows = ${sens.param1.label}, Columns = ${sens.param2!.label}.` : ''}
+              </p>
+              {renderTable('5Y', '5-Year', bestCell5Y)}
+              {renderTable('10Y', '10-Year', bestCell10Y)}
             </>
           );
         })()}
